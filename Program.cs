@@ -9,6 +9,8 @@ using System.Runtime.InteropServices;
 using System.IO.Compression;
 using System.Diagnostics.Eventing.Reader;
 using Windows.ApplicationModel;
+using FlaUI.Core.Input;
+using System.Drawing.Printing;
 
 namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
 {
@@ -105,7 +107,6 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 Console.WriteLine("******************************************************************");
                 Thread.Sleep(10000);
 
-
                 if (!OpenAppAndDBConfig())
                 {
                     Log.Information("application automation failed !!");
@@ -118,6 +119,7 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 }
                 Log.Information("now wait for 1 minute before clicking report...");
                 Thread.Sleep(35000);
+
 
                 /* Try to navigare and open 'Sales' report */
                 if (!OpenReport("sales"))
@@ -205,7 +207,8 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 ele.Focus();
                 Thread.Sleep(1000);
 
-                ele = WaitForElement(() => ele.FindFirstDescendant(cr => cr.ByName("Windows")));
+                //ele = WaitForElement(() => ele.FindFirstDescendant(cr => cr.ByName("Windows")));
+                ele = WaitForElement(() => ele.FindFirstDescendant(cr => cr.ByName("Jendela")));
                 if (ele is null)
                 {
                     Log.Information($"[Step #3] Quitting, end of ClosingWorkspace automation function !!");
@@ -409,7 +412,8 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
         {
             try
             {
-                var ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Login")));
+                //var ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Login")));
+                var ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Daftar")));
                 if (ele is null)
                 {
                     Log.Information($"[Step #{step += 1}] Quitting, end of login automation function !!");
@@ -610,7 +614,7 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 Log.Information("Element Interaction on property named -> " + ele.Properties.Name.ToString());
 
                 //Export settings
-                ele.FindFirstChild(cf.ByName(("Export"))).AsButton().Click();
+                ele.FindFirstChild(cf.ByName("Expor", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring)).AsButton().Click();
                 Thread.Sleep(1000);
 
                 /* The export button action resulting new window opened */
@@ -666,7 +670,7 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 default:
                     break;
             }
-            System.Windows.Forms.SendKeys.SendWait($@"{appfolder}\{excelname}.xls");
+            System.Windows.Forms.SendKeys.SendWait($@"{appfolder}\{excelname}.");
             Thread.Sleep(500);
 
             //Save
@@ -677,6 +681,7 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 return false;
             }
             Log.Information("Element Interaction on property named -> " + ele.Properties.Name.ToString());
+            ele.SetForeground();
             ele.AsButton().Click();
 
             /* Pause the app to wait file saving is finnished */
@@ -773,19 +778,24 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + ele.Properties.ClassName.ToString());
-                ele.SetForeground();
+                //ele.SetForeground();
                 Thread.Sleep(500);
 
                 /* Click on Reports menu */
-                ele = WaitForElement(() => mainElement.FindFirstDescendant(cr => cr.ByName("Reports")));
+                //ele = WaitForElement(() => mainElement.FindFirstDescendant(cr => cr.ByName("Reports")));
+                ele = WaitForElement(() => ele.FindFirstDescendant(cr => cr.ByName("Laporan")));
                 if (ele is null)
                 {
                     Log.Information($"[Step #3] Quitting, end of OpenReport automation function !!");
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + ele.Properties.Name.ToString());
-                ele.AsMenu().Focus();
-                ele.AsMenu().Click();
+                //ele.AsMenu().Focus();
+                //ele.AsMenu().Click();
+                var pos = ele.GetClickablePoint();
+                Mouse.MoveTo(pos.X, pos.Y);
+                Mouse.Click();
+
                 Thread.Sleep(1000);
 
                 // Context
@@ -812,7 +822,8 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 //Log.Information("Then sending key 'I'...");
                 Thread.Sleep(3000);
 
-                var indexToReportsElement = WaitForElement(() => mainElement.FindFirstDescendant(cr => cr.ByName("Index to Reports")));
+                //var indexToReportsElement = WaitForElement(() => mainElement.FindFirstDescendant(cr => cr.ByName("Index to Reports")));
+                var indexToReportsElement = WaitForElement(() => mainElement.FindFirstDescendant(cr => cr.ByName("Daftar Laporan")));
                 if (indexToReportsElement == null)
                 {
                     Log.Information($"[Step #6] Quitting, end of OpenReport function.");
@@ -822,8 +833,9 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 indexToReportsElement.Focus();
                 Thread.Sleep(2000);
 
-                var reportMain = (reportType == "sales") ? "Sales Reports" : "Account Receivables & Customers";
-                var reportElement1 = indexToReportsElement.FindFirstDescendant(cf.ByName(reportMain));
+                //* var reportMainTab = (reportType == "sales") ? "Sales Reports" : "Account Receivables & Customers";
+                var reportMainTab = (reportType == "sales") ? "Laporan Penjualan" : "Akun Piutang & Pelanggan";
+                var reportElement1 = indexToReportsElement.FindFirstDescendant(cf.ByName(reportMainTab));
 
                 if (reportElement1 == null)
                 {
@@ -834,7 +846,8 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 reportElement1.Click();
                 Thread.Sleep(1000);
 
-                var reportName = (reportType == "sales") ? "Sales By Customer Detail" : "Invoices Paid Summary";
+                //var reportName = (reportType == "sales") ? "Sales By Customer Detail" : "Invoices Paid Summary";
+                var reportName = (reportType == "sales") ? "Rincian Penjualan per Pelanggan" : "Rincian Pembayaran Faktur";
                 var reportElement2 = indexToReportsElement.FindFirstDescendant(cf.ByName(reportName));
 
                 if (reportElement2 == null)
@@ -859,7 +872,7 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 Thread.Sleep(2000);
 
                 // Filters && Parameters => Under 'Desktop' windows
-                var filtersAndParametersElement = reportFormatElement.FindFirstDescendant(cf.ByName("Filters && Parameters", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                var filtersAndParametersElement = reportFormatElement.FindFirstDescendant(cf.ByName(" Filter && Parameter", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
 
                 if (filtersAndParametersElement == null)
                 {
@@ -937,7 +950,7 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 Thread.Sleep(500);
 
                 /* Click on Reports menu */
-                ele = WaitForElement(() => mainElement.FindFirstDescendant(cr => cr.ByName("File")));
+                ele = WaitForElement(() => mainElement.FindFirstDescendant(cr => cr.ByName("Berkas")));
                 if (ele is null)
                 {
                     Log.Information($"[Step #3] Quitting, end of CloseApp automation function !!");
