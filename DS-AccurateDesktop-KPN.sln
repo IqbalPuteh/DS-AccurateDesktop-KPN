@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.7.34018.315
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DS-AccurateDesktop-KPN", "DS-AccurateDesktop-KPN.csproj", "{145E8DEB-D560-465B-8E7A-885B30420001}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{145E8DEB-D560-465B-8E7A-885B30420001}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{145E8DEB-D560-465B-8E7A-885B30420001}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{145E8DEB-D560-465B-8E7A-885B30420001}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{145E8DEB-D560-465B-8E7A-885B30420001}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2ADC6B57-0FE7-458F-8787-9057B31BDC0E}
+	EndGlobalSection
+EndGlobal
