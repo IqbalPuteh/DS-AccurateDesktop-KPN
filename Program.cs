@@ -111,6 +111,69 @@ namespace DSAccurateDesktopKPN
                 Thread.Sleep(10000);
 
 
+                if (!OpenAppAndDBConfig())
+                {
+                    Log.Information("application automation failed !!");
+                    return;
+                }
+                if (!LoginProcess())
+                {
+                    Log.Information("application automation failed !!");
+                    return;
+                }
+                Log.Information("now wait for 1 minute before clicking report...");
+                Thread.Sleep(35000);
+
+
+                /* Try to navigare and open 'Sales' report */
+                if (!OpenReport("sales"))
+                {
+                    Log.Information("Application Automation failed !!");
+                    return;
+                }
+                /* Download Sales report on screen */
+                if (!DownloadReport("sales"))
+                {
+                    Log.Information("Application Automation failed !!");
+                    return;
+                }
+                /* Closing Workspaces that contain all report tab */
+                if (!ClosingWorkspace())
+                {
+                    Log.Information("Application Automation failed !!");
+                    return;
+                }
+                /* Try to navigare and open 'Repayment/AR and Master Outlet' report */
+                if (!OpenReport("ar"))
+                {
+                    Log.Information("Application Automation failed !!");
+                    return;
+                }
+                /* Download AR report on screen */
+                if (!DownloadReport("ar"))
+                {
+                    Log.Information("Application Automation failed !!");
+                    return;
+                }
+                /* Try to navigare and open 'Master Outlet' report */
+                if (!OpenReport("outlet"))
+                {
+                    Log.Information("Application Automation failed !!");
+                }
+
+                /* Download Master Outlet report on screen */
+                if (!DownloadReport("outlet"))
+                {
+                    Log.Information("Application Automation failed !!");
+                    return;
+                }
+
+                /* Closing Workspaces that contain all report tab */
+                if (!ClosingWorkspace())
+                {
+                    Log.Information("Application Automation failed !!");
+                    return;
+                }
 
 
                 /* Try to navigare and open 'Stock Valueation' report */
@@ -748,6 +811,7 @@ namespace DSAccurateDesktopKPN
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + reportElement2.Properties.Name.ToString());
+                reportElement2.Focus();
                 reportElement2.DoubleClick();
                 Thread.Sleep(3000);
 
