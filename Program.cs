@@ -8,6 +8,7 @@ using FlaUI.Core.AutomationElements;
 using System.Configuration;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using FlaUI.Core.WindowsAPI;
 
 namespace DSAccurateDesktopKPN
 {
@@ -46,6 +47,9 @@ namespace DSAccurateDesktopKPN
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern IntPtr SendMessage(IntPtr hWnd, UInt32 Msg, IntPtr wParam, IntPtr lParam);
 
+        [DllImport("user32.dll")]
+        public static extern bool BlockInput(bool fBlockIt);
+
         private static AutomationElement WaitForElement(Func<AutomationElement> findElementFunc)
         {
             AutomationElement element = null;
@@ -61,6 +65,7 @@ namespace DSAccurateDesktopKPN
             }
             return element;
         }
+        
         static void closeWarningDialogBox(string Title)
         {
             var hWnd = FindWindow(null, Title);
@@ -75,6 +80,7 @@ namespace DSAccurateDesktopKPN
         {
             try
             {
+                BlockInput(true);
                 DeleteSupportingFiles(appfolder, EXCELfile);
                 DeleteSupportingFiles(appfolder, LOGFile);
                 DeleteSupportingFiles(appfolder, ZIPFile);
@@ -104,28 +110,16 @@ namespace DSAccurateDesktopKPN
                 Log.Information("******************************************************************");
                 Thread.Sleep(10000);
 
-                if (!OpenAppAndDBConfig())
-                {
-                    Log.Information("application automation failed !!");
-                    return;
-                }
-                if (!LoginProcess())
-                {
-                    Log.Information("application automation failed !!");
-                    return;
-                }
-                Log.Information("now wait for 1 minute before clicking report...");
-                Thread.Sleep(35000);
 
 
-                /* Try to navigare and open 'Sales' report */
-                if (!OpenReport("sales"))
+
+                /* Try to navigare and open 'Stock Valueation' report */
+                if (!OpenReport("stock"))
                 {
                     Log.Information("Application Automation failed !!");
-                    return;
                 }
-                /* Download Sales report on screen */
-                if (!DownloadReport("sales"))
+                /* Download Stock report on screen */
+                if (!DownloadReport("stock"))
                 {
                     Log.Information("Application Automation failed !!");
                     return;
@@ -136,37 +130,38 @@ namespace DSAccurateDesktopKPN
                     Log.Information("Application Automation failed !!");
                     return;
                 }
-                /* Try to navigare and open 'Repayment/AR and Master Outlet' report */
-                if (!OpenReport("ar"))
-                {
-                    Log.Information("Application Automation failed !!");
-                    return;
-                }
-                /* Download AR report on screen */
-                if (!DownloadReport("ar"))
-                {
-                    Log.Information("Application Automation failed !!");
-                    return;
-                }
-                /* Try to navigare and open 'Master Outlet' report */
-                if (!OpenReport("outlet"))
+                /* Try to navigare and open 'GL' report */
+                if (!OpenReport("gl"))
                 {
                     Log.Information("Application Automation failed !!");
                 }
 
-                /* Download Master Outlet report on screen */
-                if (!DownloadReport("outlet"))
+                /* Download GL report on screen */
+                if (!DownloadReport("gl"))
                 {
                     Log.Information("Application Automation failed !!");
                     return;
                 }
 
+                /* Try to navigare and open 'Laba/Rugi' report */
+                if (!OpenReport("labarugi"))
+                {
+                    Log.Information("Application Automation failed !!");
+                }
+
+                /* Download GL report on screen */
+                if (!DownloadReport("labarugi"))
+                {
+                    Log.Information("Application Automation failed !!");
+                    return;
+                }
                 /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
                 {
                     Log.Information("Application Automation failed !!");
                     return;
                 }
+
                 if (!CloseApp())
                 {
                     Log.Information("Application Automation failed !!");
@@ -180,13 +175,13 @@ namespace DSAccurateDesktopKPN
             }
             finally
             {
+                BlockInput(false);
                 Log.Information("Accurate Desktop ver.4 Automation - SELESAI");
                 if (automationUIA3 != null)
                 {
                     automationUIA3.Dispose();
                 }
                 Log.CloseAndFlush();
-
             }
         }
 
@@ -503,7 +498,7 @@ namespace DSAccurateDesktopKPN
         {
             //Edit
             //System.Windows.Forms.SendKeys.SendWait("%n");
-            Keyboard.Type("%n");
+            //Keyboard.Type("%n");
             Log.Information("Saving file by sending keys 'ALT+n'...");
             Thread.Sleep(500);
             var excelname = "";
@@ -518,7 +513,14 @@ namespace DSAccurateDesktopKPN
                 case "outlet":
                     excelname = "Master_Outlet";
                     break;
-                default:
+                case "gl":
+                    excelname = "Laporan_Bukubesar";
+                    break;
+                case "stock":
+                    excelname = "Stock_Valuation";
+                    break;
+                case "labarugi":
+                    excelname = "Laporan_Laba_Rugi";
                     break;
             }
             //System.Windows.Forms.SendKeys.SendWait($@"{appfolder}\{excelname}.");
@@ -658,8 +660,6 @@ namespace DSAccurateDesktopKPN
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + ele.Properties.Name.ToString());
-                //System.Windows.Forms.SendKeys.SendWait("%R");
-                //Log.Information("Sending keys 'ALT+R'...");
                 Thread.Sleep(1000);
 
                 ele = ele.FindAllDescendants((cr => cr.ByControlType(FlaUI.Core.Definitions.ControlType.MenuItem))).ElementAt(0);
@@ -670,8 +670,6 @@ namespace DSAccurateDesktopKPN
                 }
                 Log.Information("Element Interaction on property named 'Context' with Child id# -> " + ele.Properties.AutomationId.ToString());
                 ele.Click();
-                //System.Windows.Forms.SendKeys.SendWait("i");
-                //Log.Information("Then sending key 'I'...");
                 Thread.Sleep(3000);
 
                 //var indexToReportsElement = WaitForElement(() => mainElement.FindFirstDescendant(cr => cr.ByName("Index to Reports")));
@@ -685,8 +683,28 @@ namespace DSAccurateDesktopKPN
                 indexToReportsElement.Focus();
                 Thread.Sleep(2000);
 
-                //* var reportMainTab = (reportType == "sales") ? "Sales Reports" : "Account Receivables & Customers";
-                var reportMainTab = (reportType == "sales") ? "Laporan Penjualan" : "Akun Piutang & Pelanggan";
+                var reportMainTab = "";
+                switch (reportType)
+                {
+                    case "sales":
+                        reportMainTab = "Laporan Penjualan";
+                        break;
+                    case "ar":
+                        reportMainTab = "Akun Piutang & Pelanggan";
+                        break;
+                    case "outlet":
+                        reportMainTab = "Daftar Pelanggan";
+                        break;
+                    case "gl":
+                        reportMainTab = "Laporan Keuangan";
+                        break;
+                    case "stock":
+                        reportMainTab = "Persediaan";
+                        break;
+                    case "labarugi":
+                        reportMainTab = "Laporan Keuangan";
+                        break;
+                }
                 var reportElement1 = indexToReportsElement.FindFirstDescendant(cf.ByName(reportMainTab));
 
                 if (reportElement1 == null)
@@ -698,8 +716,6 @@ namespace DSAccurateDesktopKPN
                 reportElement1.Click();
                 Thread.Sleep(1000);
 
-                //var reportName = (reportType == "sales") ? "Sales By Customer Detail" : "Invoices Paid Summary";
-                //var reportName = (reportType == "sales") ? "Rincian Penjualan per Pelanggan" : "Rincian Pembayaran Faktur";
                 var reportName = "";
                 switch (reportType)
                 {
@@ -712,9 +728,20 @@ namespace DSAccurateDesktopKPN
                     case "outlet":
                         reportName = "Daftar Pelanggan";
                         break;
+                    case "gl":
+                        reportName = "Neraca (Standar)";
+                        break;
+                    case "stock":
+                        reportName = "Rincian Valuasi Persediaan";
+                        break;
+                    case "labarugi":
+                        reportName = "Laba/Rugi (Standar)";
+                        // -->> await page.Locator("label").Filter(new() { HasText = "Tampilkan Akun Induk" }).Locator("span").First.ClickAsync();
+                        // -->> await page.Locator("label").Filter(new() { HasText = "Tampilkan data dengan Saldo Nol" }).Locator("span").First.ClickAsync();
+                        // -->> await page.Locator("label").Filter(new() { HasText = "Tampilkan Saldo Akun Induk" }).Locator("span").First.ClickAsync();
+                        break;
                 }
                 var reportElement2 = indexToReportsElement.FindFirstDescendant(cf.ByName(reportName));
-
                 if (reportElement2 == null)
                 {
                     Log.Information($"[Step #8] Quitting, end of OpenReport automation function.");
@@ -895,19 +922,15 @@ namespace DSAccurateDesktopKPN
             try
             {
                 Log.Information("Checking data sharing files...");
-                //CheckAndDeleteZipFile(strDataSharingFolder);
                 var strDsPeriod = GetPrevYear() + GetPrevMonth();
 
-                Log.Information("Moving standart excel reports file to uploaded folder...");
                 // move excels files to Datafolder
-
-                /* var path = strAppDownloadFolder + @"\Master_Outlet.xlsx";
-                var path2 = strUploadFolder + @"\ds-" + strDTid + "-" + strDTname + "-" + strDsPeriod + "_OUTLET.xlsx";
+                Log.Information("Moving standart excel reports file to uploaded folder...");
+                var path = appfolder + @"\Master_Outlet.xlsx";
+                var path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_OUTLET.xlsx";
                 File.Move(path, path2, true);
-                */
-
-                var path = appfolder + @"\Sales_Data.xls";
-                var path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_SALES.xls";
+                path = appfolder + @"\Sales_Data.xls";
+                path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_SALES.xls";
                 File.Move(path, path2, true);
                 path = appfolder + @"\Repayment_Data.xls";
                 path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_AR.xls";
@@ -1031,6 +1054,8 @@ namespace DSAccurateDesktopKPN
                 Log.Information($"Error during ZIP file deletion: {ex.Message}");
             }
         }
+
+
 
     }
 
