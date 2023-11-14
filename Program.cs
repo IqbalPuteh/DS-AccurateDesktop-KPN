@@ -1,18 +1,15 @@
 ﻿using System;
-using FlaUI.Core;
+using Serilog;
 using FlaUI.UIA3;
+using FlaUI.Core;
+using FlaUI.Core.Input;
 using FlaUI.Core.Conditions;
 using FlaUI.Core.AutomationElements;
-using Serilog;
 using System.Configuration;
-using System.Runtime.InteropServices;
 using System.IO.Compression;
-using System.Diagnostics.Eventing.Reader;
-using Windows.ApplicationModel;
-using FlaUI.Core.Input;
-using System.Drawing.Printing;
+using System.Runtime.InteropServices;
 
-namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
+namespace DSAccurateDesktopKPN
 {
     internal class Program
     {
@@ -98,13 +95,13 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 Log.Logger = config.CreateLogger();
 
                 Log.Information("*** Accurate Desktop ver.4 Automation -  by FAIRBANC ***");
-                Console.WriteLine("");
+                Log.Information("");
                 Log.Information("Automasi akan dimulai !");
-                Console.WriteLine("******************************************************************");
-                Console.WriteLine("Keyboard dan Mouse akan di matikan...");
-                Console.WriteLine("Komputer akan di jalankan oleh applikasi robot automasi...");
-                Console.WriteLine("Aktifitas penggunakan komputer akan terblokir selama 10 menit...");
-                Console.WriteLine("******************************************************************");
+                Log.Information("******************************************************************");
+                Log.Information("             Keyboard dan Mouse akan di matikan...                ");
+                Log.Information("     Komputer akan menjalankan oleh applikasi robot automasi...   ");
+                Log.Information(" Aktifitas penggunakan komputer akan ter-BLOKIR selama 10 menit...");
+                Log.Information("******************************************************************");
                 Thread.Sleep(10000);
 
                 if (!OpenAppAndDBConfig())
@@ -127,7 +124,7 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                     Log.Information("Application Automation failed !!");
                     return;
                 }
-                /* Download opened report on screen */
+                /* Download Sales report on screen */
                 if (!DownloadReport("sales"))
                 {
                     Log.Information("Application Automation failed !!");
@@ -139,18 +136,31 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                     Log.Information("Application Automation failed !!");
                     return;
                 }
-                /* Try to navigare and open 'Sales' report */
+                /* Try to navigare and open 'Repayment/AR and Master Outlet' report */
                 if (!OpenReport("ar"))
                 {
                     Log.Information("Application Automation failed !!");
                     return;
                 }
-                /* Download opened report on screen */
+                /* Download AR report on screen */
                 if (!DownloadReport("ar"))
                 {
                     Log.Information("Application Automation failed !!");
                     return;
                 }
+                /* Try to navigare and open 'Master Outlet' report */
+                if (!OpenReport("outlet"))
+                {
+                    Log.Information("Application Automation failed !!");
+                }
+
+                /* Download Master Outlet report on screen */
+                if (!DownloadReport("outlet"))
+                {
+                    Log.Information("Application Automation failed !!");
+                    return;
+                }
+
                 /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
                 {
@@ -177,7 +187,6 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 }
                 Log.CloseAndFlush();
 
-                //Task.Run(() => System.Windows.MessageBox.Show("Tejadi kesalahan, sliahkan tutup applikasi !!!"));
             }
         }
 
@@ -439,157 +448,6 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
             }
         }
 
-        static bool OpenReport01(string rptType)
-        {
-            try
-            {
-                var ele1 = WaitForElement(() => window.FindFirstDescendant(cf => cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring)));
-                if (ele1 is null)
-                {
-                    Log.Information($"[Step #1 Quitting, end of OpenReport01\\{rptType} automation function !!");
-                    return false;
-                }
-                Log.Information("Element Interaction on property named -> " + ele1.Properties.ClassName.ToString());
-                ele1.SetForeground();
-                Thread.Sleep(500);
-
-                var ele = ele1.FindFirstDescendant(cr => cr.ByClassName("TsuiSkinMenuBar"));
-                if (ele is null)
-                {
-                    Log.Information($"[Step #2] Quitting, end of OpenReport01\\{rptType} automation function !!");
-                    return false;
-                }
-                Log.Information(ele.Properties.ClassName.ToString());
-                //ele.Focus();
-
-                System.Windows.Forms.SendKeys.SendWait("%R");
-                Log.Information("Sending keys 'ALT+R'...");
-                Thread.Sleep(1000);
-
-                System.Windows.Forms.SendKeys.SendWait("i");
-                Log.Information("Then sending key 'I'...");
-                Thread.Sleep(1000);
-
-                /* Travesing to 'Index to Reports' */
-                //window = automationUIA3.GetDesktop();
-                var eleParent = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByName("Index to Reports")));
-                if (eleParent is null)
-                {
-                    Log.Information($"[Step #3] Quitting, end of OpenReport0\\{rptType}1 automation function !!");
-                    return false;
-                }
-                Log.Information("Class name is {0}", eleParent.Properties.ClassName.ToString());
-                Thread.Sleep(1000);
-
-                if (rptType == "sales")
-                {
-                    //Sales Reports
-                    ele = eleParent.FindFirstDescendant(cf => cf.ByName("Sales Reports"));
-                    if (ele is null)
-                    {
-                        Log.Information($"[Step #4] Quitting, end of OpenReport01\\{rptType} automation function !!");
-                        return false;
-                    }
-                    ele.Click();
-                    Thread.Sleep(500);
-
-                    //Sales By Customer Detail
-                    ele = eleParent.FindFirstDescendant(cf => cf.ByName("Sales By Customer Detail"));
-                    if (ele is null)
-                    {
-                        Log.Information($"[Step #5] Quitting, end of OpenReport01\\{rptType} automation function !!"); ;
-                        return false;
-                    }
-                    ele.DoubleClick();
-                    Thread.Sleep(3000);
-                }
-
-                if (rptType == "ar")
-                {
-                    //Account Receivables & Customers
-                    ele = eleParent.FindFirstDescendant(cf => cf.ByName("Account Receivables & Customers"));
-                    if (ele is null)
-                    {
-                        Log.Information($"[Step #9] Quitting, end of OpenReport01\\{rptType} automation function !!");
-                        return false;
-                    }
-                    ele.Click();
-                    Thread.Sleep(500);
-
-                    //Invoices Paid Summary
-                    ele = eleParent.FindFirstDescendant(cf => cf.ByName("Invoices Paid Summary"));
-                    if (ele is null)
-                    {
-                        Log.Information($"[Step #10] Quitting, end of OpenReport01\\{rptType} automation function !!"); ;
-                        return false;
-                    }
-                    ele.DoubleClick();
-                    Thread.Sleep(3000);
-                }
-
-                //Report Format
-                eleParent = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByName("Report Format")).AsWindow());
-                if (eleParent is null)
-                {
-                    Log.Information($"[Step #6] Quitting, end of OpenReport01\\{rptType} automation function !!");
-                    return false;
-                }
-                Log.Information(eleParent.Properties.ClassName.ToString());
-                eleParent.Focus();
-                Thread.Sleep(2000);
-
-                //  Filters && Parameters => Under 'Desktop' windows
-                ele = eleParent.FindFirstDescendant(cf => cf.ByName("Filters && Parameters", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
-                //ele = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByName("Filters && Parameters", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring)));
-                if (ele is null)
-                {
-                    Log.Information($"[Step #7] Quitting, end of OpenReport01\\{rptType} automation function !!");
-                    return false;
-                }
-                Log.Information(ele.Properties.ClassName.ToString());
-                ele.Focus();
-                Thread.Sleep(500);
-
-                //TabDateFromTo
-                ele = ele.FindFirstDescendant(cr => cf.ByName("TabDateFromTo"));
-                if (ele is null)
-                {
-                    Log.Information($"[Step #8] Quitting, end of OpenReport01\\{rptType} automation function !!");
-                    return false;
-                }
-                ele.Focus();
-
-                /* Sending Report Date Parameters */
-                AutomationElement[] ArrEle = ele.FindAllDescendants(cf => cf.ByClassName("TDateEdit"));
-                if (ArrEle.Length > 0)
-                {
-                    //TDateEdit
-                    Log.Information($"Number of DATE parameter on screen is : {ArrEle.Length}");
-                    for (int index = ArrEle.Length - 1; index > -1; index--)
-                    {
-                        if (index != 0)
-                        {
-                            SendingDate(ArrEle[index], "01/01/2000");
-                        }
-                        else
-                        {
-                            SendingDate(ArrEle[index], "31/12/2023");
-                        }
-                    }
-                }
-
-                eleParent.FindFirstDescendant(cf.ByName("OK")).AsButton().Click();
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                Log.Information($"[Exception] Quitting, end of OpenReport01\\{rptType} automation function !!");
-                throw ex;
-            }
-
-        }
-
         static bool DownloadReport(string reportName)
         {
             try
@@ -643,16 +501,9 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
 
         private static bool SavingFileDialog(string reportName)
         {
-            //var ele1 = window.FindFirstDescendant(cf.ByClassName("#32770"));
-            //if (ele1 is null)
-            //{
-            //    log.Information($"[Step #1] Quitting, end of OpenReport\\SavingFileDialog automation function !!");
-            //    return false;
-            //}
-            //ele1.Focus();
-
             //Edit
-            System.Windows.Forms.SendKeys.SendWait("%n");
+            //System.Windows.Forms.SendKeys.SendWait("%n");
+            Keyboard.Type("%n");
             Log.Information("Saving file by sending keys 'ALT+n'...");
             Thread.Sleep(500);
             var excelname = "";
@@ -670,7 +521,8 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 default:
                     break;
             }
-            System.Windows.Forms.SendKeys.SendWait($@"{appfolder}\{excelname}.");
+            //System.Windows.Forms.SendKeys.SendWait($@"{appfolder}\{excelname}.");
+            Keyboard.Type($@"{appfolder}\{excelname}");
             Thread.Sleep(500);
 
             //Save
@@ -847,7 +699,20 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 Thread.Sleep(1000);
 
                 //var reportName = (reportType == "sales") ? "Sales By Customer Detail" : "Invoices Paid Summary";
-                var reportName = (reportType == "sales") ? "Rincian Penjualan per Pelanggan" : "Rincian Pembayaran Faktur";
+                //var reportName = (reportType == "sales") ? "Rincian Penjualan per Pelanggan" : "Rincian Pembayaran Faktur";
+                var reportName = "";
+                switch (reportType)
+                {
+                    case "sales":
+                        reportName = "Rincian Penjualan per Pelanggan";
+                        break;
+                    case "ar":
+                        reportName = "Rincian Pembayaran Faktur";
+                        break;
+                    case "outlet":
+                        reportName = "Daftar Pelanggan";
+                        break;
+                }
                 var reportElement2 = indexToReportsElement.FindFirstDescendant(cf.ByName(reportName));
 
                 if (reportElement2 == null)
@@ -884,7 +749,7 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
                 Thread.Sleep(500);
 
                 // TabDateFromTo
-                var tabDateFromToElement = filtersAndParametersElement.FindFirstDescendant(cf.ByName("TabDateFromTo"));
+                var tabDateFromToElement = filtersAndParametersElement.FindFirstDescendant(cf.ByName("TabDate", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
                 if (tabDateFromToElement == null)
                 {
                     Log.Information($"[Step #11] Quitting, end of OpenReport aut[Step #11] ction.");
@@ -902,16 +767,19 @@ namespace DesktopDSPTTest // Note: actual namespace depends on the project name.
 
                     for (int index = dateElements.Length - 1; index > -1; index--)
                     {
+                        var dateparam = "";
                         if (index != 0)
                         {
-                            var dateparam = GetFirstDate() + "/" + GetPrevMonth() + "/" + GetPrevYear();
-                            SendingDate(dateElements[index], "01/01/2000");
+                            dateparam = GetFirstDate() + "/" + GetPrevMonth() + "/" + GetPrevYear();
+                            //SendingDate(dateElements[index], "01/01/2000");
                         }
                         else
                         {
-                            var dateparam = GetLastDayOfPrevMonth() + "/" + GetPrevMonth() + "/" + GetPrevYear();
-                            SendingDate(dateElements[index], "31/12/2023");
+                            dateparam = GetLastDayOfPrevMonth() + "/" + GetPrevMonth() + "/" + GetPrevYear();
+                            //SendingDate(dateElements[index], "31/12/2023");
                         }
+                        SendingDate(dateElements[index], dateparam);
+
                     }
                 }
 
