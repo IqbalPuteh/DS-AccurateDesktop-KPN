@@ -131,8 +131,15 @@ namespace DSAccurateDesktopKPN
                     Log.Information("Application Automation failed !!");
                     return;
                 }
-                /* Download Sales report on screen */
-                if (!DownloadReport("sales"))
+                /* Closing Workspaces that contain all report tab */
+                if (!ClosingWorkspace())
+                {
+                    Log.Information("Application Automation failed !!");
+                    return;
+                }
+
+                /* Try to navigare and open 'Repayment/AR and Master Outlet' report */
+                if (!OpenReport("ar"))
                 {
                     Log.Information("Application Automation failed !!");
                     return;
@@ -143,31 +150,12 @@ namespace DSAccurateDesktopKPN
                     Log.Information("Application Automation failed !!");
                     return;
                 }
-                /* Try to navigare and open 'Repayment/AR and Master Outlet' report */
-                if (!OpenReport("ar"))
-                {
-                    Log.Information("Application Automation failed !!");
-                    return;
-                }
-                /* Download AR report on screen */
-                if (!DownloadReport("ar"))
-                {
-                    Log.Information("Application Automation failed !!");
-                    return;
-                }
+
                 /* Try to navigare and open 'Master Outlet' report */
                 if (!OpenReport("outlet"))
                 {
                     Log.Information("Application Automation failed !!");
                 }
-
-                /* Download Master Outlet report on screen */
-                if (!DownloadReport("outlet"))
-                {
-                    Log.Information("Application Automation failed !!");
-                    return;
-                }
-
                 /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
                 {
@@ -181,26 +169,19 @@ namespace DSAccurateDesktopKPN
                 {
                     Log.Information("Application Automation failed !!");
                 }
-                /* Download Stock report on screen */
-                if (!DownloadReport("stock"))
-                {
-                    Log.Information("Application Automation failed !!");
-                    return;
-                }
                 /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
                 {
                     Log.Information("Application Automation failed !!");
                     return;
                 }
-                /* Try to navigare and open 'GL' report */
-                if (!OpenReport("gl"))
+                /* Try to navigare and open 'Cash Flow' report */
+                if (!OpenReport("cashflow"))
                 {
                     Log.Information("Application Automation failed !!");
                 }
-
-                /* Download GL report on screen */
-                if (!DownloadReport("gl"))
+                /* Closing Workspaces that contain all report tab */
+                if (!ClosingWorkspace())
                 {
                     Log.Information("Application Automation failed !!");
                     return;
@@ -211,12 +192,18 @@ namespace DSAccurateDesktopKPN
                 {
                     Log.Information("Application Automation failed !!");
                 }
-
-                /* Download GL report on screen */
-                if (!DownloadReport("labarugi"))
+                /* Closing Workspaces that contain all report tab */
+                if (!ClosingWorkspace())
                 {
                     Log.Information("Application Automation failed !!");
                     return;
+                }
+
+
+                /* Try to navigare and open 'Laba/Rugi' report */
+                if (!OpenReport("neraca"))
+                {
+                    Log.Information("Application Automation failed !!");
                 }
                 /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
@@ -230,6 +217,7 @@ namespace DSAccurateDesktopKPN
                     Log.Information("Application Automation failed !!");
                     return;
                 }
+
                 ZipAndSendFile();
             }
             catch (Exception ex)
@@ -576,14 +564,17 @@ namespace DSAccurateDesktopKPN
                 case "outlet":
                     excelname = "Master_Outlet";
                     break;
-                case "gl":
-                    excelname = "Laporan_Bukubesar";
-                    break;
-                case "stock":
-                    excelname = "Stock_Valuation";
+               case "stock":
+                    excelname = "Laporan_Stock";
                     break;
                 case "labarugi":
-                    excelname = "Laporan_Laba_Rugi";
+                    excelname = "Laporan_LabaRugi";
+                    break;
+                case "cashflow":
+                    excelname = "Laporan_ArusKas";
+                    break;
+                case "neraca":
+                    excelname = "Laporan_NeracaSaldo";
                     break;
             }
             //System.Windows.Forms.SendKeys.SendWait($@"{appfolder}\{excelname}.");
@@ -756,16 +747,19 @@ namespace DSAccurateDesktopKPN
                         reportMainTab = "Akun Piutang & Pelanggan";
                         break;
                     case "outlet":
-                        reportMainTab = "Daftar Pelanggan";
-                        break;
-                    case "gl":
-                        reportMainTab = "Laporan Keuangan";
+                        reportMainTab = "Akun Piutang & Pelanggan";
                         break;
                     case "stock":
                         reportMainTab = "Persediaan";
                         break;
                     case "labarugi":
                         reportMainTab = "Laporan Keuangan";
+                        break;
+                    case "cashflow":
+                        reportMainTab = "Kas & Bank";
+                        break;
+                    case "neraca":
+                        reportMainTab = "Buku Besar";
                         break;
                 }
                 var reportElement1 = indexToReportsElement.FindFirstDescendant(cf.ByName(reportMainTab));
@@ -791,9 +785,6 @@ namespace DSAccurateDesktopKPN
                     case "outlet":
                         reportName = "Daftar Pelanggan";
                         break;
-                    case "gl":
-                        reportName = "Neraca (Standar)";
-                        break;
                     case "stock":
                         reportName = "Rincian Valuasi Persediaan";
                         break;
@@ -803,6 +794,12 @@ namespace DSAccurateDesktopKPN
                         // -->> await page.Locator("label").Filter(new() { HasText = "Tampilkan data dengan Saldo Nol" }).Locator("span").First.ClickAsync();
                         // -->> await page.Locator("label").Filter(new() { HasText = "Tampilkan Saldo Akun Induk" }).Locator("span").First.ClickAsync();
                         break;
+                    case "cashflow":
+                        reportName = "Arus Kas per Akun";
+                        break;
+                    case "neraca":
+                        reportName = "Neraca Saldo";
+                        break;
                 }
                 var reportElement2 = indexToReportsElement.FindFirstDescendant(cf.ByName(reportName));
                 if (reportElement2 == null)
@@ -811,11 +808,12 @@ namespace DSAccurateDesktopKPN
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + reportElement2.Properties.Name.ToString());
+                reportElement2.SetForeground();
                 reportElement2.Focus();
                 reportElement2.DoubleClick();
                 Thread.Sleep(3000);
 
-                // Report Format
+                // Opening Report Format Window
                 var reportFormatElement = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByName("Report Format")).AsWindow());
 
                 if (reportFormatElement == null)
@@ -875,7 +873,7 @@ namespace DSAccurateDesktopKPN
                 }
 
                 reportFormatElement.FindFirstDescendant(cf.ByName("OK")).AsButton().Click();
-                return true;
+                return DownloadReport(reportType);
             }
             catch (Exception ex)
             {
@@ -985,13 +983,13 @@ namespace DSAccurateDesktopKPN
         {
             try
             {
-                Log.Information("Checking data sharing files...");
+                Log.Information("Prepare data sharing files processing...");
                 var strDsPeriod = GetPrevYear() + GetPrevMonth();
 
-                // move excels files to Datafolder
-                Log.Information("Moving standart excel reports file to uploaded folder...");
-                var path = appfolder + @"\Master_Outlet.xlsx";
-                var path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_OUTLET.xlsx";
+                // move transaction reports excel files to Datafolder
+                Log.Information("Moving transaction excel reports file to uploaded folder...");
+                var path = appfolder + @"\Master_Outlet.xls";
+                var path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_OUTLET.xls";
                 File.Move(path, path2, true);
                 path = appfolder + @"\Sales_Data.xls";
                 path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_SALES.xls";
@@ -1001,13 +999,47 @@ namespace DSAccurateDesktopKPN
                 File.Move(path, path2, true);
 
                 // set zipping name for files
-                Log.Information("Zipping Transaction file(s)");
+                Log.Information("Zipping transaction file(s)");
                 var strZipFile = dtID + "-" + dtName + "_" + strDsPeriod + ".zip";
                 ZipFile.CreateFromDirectory(uploadfolder, sharingfolder + Path.DirectorySeparatorChar + strZipFile);
 
                 // Send the ZIP file to the API server 
-                Log.Information("Sending ZIP file to the API server...");
+                Log.Information("Sending transaction ZIP file to the API server...");
                 var strStatusCode = "0"; // varible for debugging Curl test
+                strStatusCode = SendReq(sharingfolder + Path.DirectorySeparatorChar + strZipFile, issandbox, "Y");
+                Thread.Sleep(5000);
+                if (strStatusCode == "200")
+                {
+                    Log.Information("DATA TRANSACTION SHARING - SELESAI");
+                }
+                else
+                {
+                    Log.Information("DATA TRANSACTION SHARING - ERROR, cUrl STATUS CODE :" + strStatusCode);
+                }
+
+                // move acconting reports standart excel
+                Log.Information("Moving standart excel reports file to uploaded folder...");
+                path = appfolder + @"\Laporan_Stock.xls";
+                path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_STOCK.xls";
+                File.Move(path, path2, true);
+                path = appfolder + @"\Laporan_NeracaSaldo.xls";
+                path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_NERACA.xls";
+                File.Move(path, path2, true);
+                path = appfolder + @"\Laporan_ArusKas.xls";
+                path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_ARUSKAS.xls";
+                File.Move(path, path2, true);
+                path = appfolder + @"\Laporan_LabaRugi.xls";
+                path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_LABARUGI.xls";
+                File.Move(path, path2, true);
+
+                // set zipping name for files
+                Log.Information("Zipping accounting file(s)");
+                strZipFile = dtID + "-" + dtName + "_" + strDsPeriod + ".zip";
+                ZipFile.CreateFromDirectory(uploadfolder, sharingfolder + Path.DirectorySeparatorChar + strZipFile);
+
+                // Send the ZIP file to the API server 
+                Log.Information("Sending accounting ZIP file to the API server...");
+                strStatusCode = "0"; // varible for debugging Curl test
                 strStatusCode = SendReq(sharingfolder + Path.DirectorySeparatorChar + strZipFile, issandbox, "Y");
                 Thread.Sleep(5000);
                 if (strStatusCode == "200")
