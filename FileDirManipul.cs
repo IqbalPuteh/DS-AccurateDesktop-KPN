@@ -23,7 +23,7 @@ public abstract class DirectoryManipulator
         return path;
     }
 
-    public virtual string DeleteFilesBase(string path, string extension)
+    public virtual string DeleteFilesBase(string path, FileExtension extension)
     {
         DirectoryInfo directory = new DirectoryInfo(path);
         foreach (FileInfo file in directory.GetFiles($"{extension}"))
@@ -77,7 +77,7 @@ public class  MyDirectoryManipulator : DirectoryManipulator
 
     }
 
-    public string DeleteFiles(string path, FileExtension fileExtension)
+    public string DeleteFiles(string path, DirectoryManipulator.FileExtension fileExtension)
     {
         string extension = string.Empty;
 
@@ -93,7 +93,7 @@ public class  MyDirectoryManipulator : DirectoryManipulator
                 extension = "*.zip";
                 break;
         }
-        base.DeleteFilesBase(path, extension);
+        base.DeleteFilesBase(path, fileExtension);
         return ($"Deleting files with extension {extension} in {path}");
     }
 

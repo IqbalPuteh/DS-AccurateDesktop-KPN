@@ -9,6 +9,8 @@ using System.Configuration;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using FlaUI.Core.WindowsAPI;
+using static DirectoryManipulator;
+using FlaUI.Core.Tools;
 
 namespace DSAccurateDesktopKPN
 {
@@ -23,10 +25,11 @@ namespace DSAccurateDesktopKPN
         static string dtID = ConfigurationManager.AppSettings["dtID"];
         static string dtName = ConfigurationManager.AppSettings["dtName"];
         static string appExe = ConfigurationManager.AppSettings["erpappnamepath"];
-        static string LoginId = ConfigurationManager.AppSettings["loginId"];
-        static string LoginPassword = ConfigurationManager.AppSettings["password"];
+        static string loginId = ConfigurationManager.AppSettings["loginId"];
+        static string loginPassword = ConfigurationManager.AppSettings["password"];
         static string enableconsolelog = ConfigurationManager.AppSettings["enableconsolelog"].ToUpper();
         static string issandbox = ConfigurationManager.AppSettings["uploadtosandbox"].ToUpper();
+        static string getacctrpt = ConfigurationManager.AppSettings["getaccountingreport"];
         static string DBpath = ConfigurationManager.AppSettings["DBaddresspath"].ToUpper();
         static string DBaliasflag = ConfigurationManager.AppSettings["DBaliasflag"].ToUpper();
         static string DBaliasname = ConfigurationManager.AppSettings["DBaliasname"];
@@ -35,10 +38,8 @@ namespace DSAccurateDesktopKPN
         static string sharingfolder = appfolder + @"\" + ConfigurationManager.AppSettings["sharingfolder"];
         //static string screenshotfolder = appfolder + @"\" + ConfigurationManager.AppSettings["screenshotfolder"];
         static string logfilename = "";
+        static int pid;
 
-        const int EXCELfile = 0;
-        const int LOGFile = 1;
-        const int ZIPFile = 2;
         const UInt32 WM_CLOSE = 0x0010;
 
         [DllImport("user32.dll", SetLastError = true)]
@@ -81,9 +82,10 @@ namespace DSAccurateDesktopKPN
             try
             {
                 BlockInput(true);
-                DeleteSupportingFiles(appfolder, EXCELfile);
-                DeleteSupportingFiles(appfolder, LOGFile);
-                DeleteSupportingFiles(appfolder, ZIPFile);
+                var supportFunc = new MyDirectoryManipulator();
+                supportFunc.DeleteFiles(appfolder, FileExtension.Excel);
+                supportFunc.DeleteFiles(appfolder, FileExtension.Log);
+                supportFunc.DeleteFiles(appfolder, FileExtension.Zip);
 
                 if (!Directory.Exists(appfolder))
                 {
@@ -99,17 +101,17 @@ namespace DSAccurateDesktopKPN
                 logfilename = "DEBUG-" + dtID + "-" + dtName + ".log";
                 config.WriteTo.File(appfolder + Path.DirectorySeparatorChar + logfilename);
                 Log.Logger = config.CreateLogger();
-
-                Log.Information("*** Accurate Desktop ver.4 Automation -  by FAIRBANC ***");
-                Log.Information("");
-                Log.Information("Automasi akan dimulai !");
-                Log.Information("******************************************************************");
-                Log.Information("             Keyboard dan Mouse akan di matikan...                ");
-                Log.Information("     Komputer akan menjalankan oleh applikasi robot automasi...   ");
-                Log.Information(" Aktifitas penggunakan komputer akan ter-BLOKIR selama 10 menit...");
-                Log.Information("******************************************************************");
+                var str = "";
+                Console.WriteLine($" *** Accurate Desktop ver.4 Automation -  by FAIRBANC ***");
+                Console.WriteLine($"");
+                Console.WriteLine($"Automasi akan dimulai !");
+                Console.WriteLine($"******************************************************************");
+                Console.WriteLine($"             Keyboard dan Mouse akan di matikan...                ");
+                Console.WriteLine($"     Komputer akan menjalankan oleh applikasi robot automasi...   ");
+                Console.WriteLine($" Aktifitas penggunakan komputer akan ter-BLOKIR selama 10 menit...");
+                Console.WriteLine($"******************************************************************");
+                Console.WriteLine($"");
                 Thread.Sleep(10000);
-
 
                 if (!OpenAppAndDBConfig())
                 {
@@ -131,7 +133,6 @@ namespace DSAccurateDesktopKPN
                     Log.Information("Application Automation failed !!");
                     return;
                 }
-                /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
                 {
                     Log.Information("Application Automation failed !!");
@@ -144,7 +145,6 @@ namespace DSAccurateDesktopKPN
                     Log.Information("Application Automation failed !!");
                     return;
                 }
-                /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
                 {
                     Log.Information("Application Automation failed !!");
@@ -155,32 +155,44 @@ namespace DSAccurateDesktopKPN
                 if (!OpenReport("outlet"))
                 {
                     Log.Information("Application Automation failed !!");
+                    return;
                 }
-                /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
                 {
                     Log.Information("Application Automation failed !!");
                     return;
                 }
 
+                if (getacctrpt != "Y")
+                {
+                    if (!CloseApp())
+                    {
+                        Log.Information("Application Automation failed !!");
+                        return;
+                    }
+
+                    ZipAndSendFile();
+                    return;
+                }
 
                 /* Try to navigare and open 'Stock Valueation' report */
                 if (!OpenReport("stock"))
                 {
                     Log.Information("Application Automation failed !!");
+                    return;
                 }
-                /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
                 {
                     Log.Information("Application Automation failed !!");
                     return;
                 }
+
                 /* Try to navigare and open 'Cash Flow' report */
                 if (!OpenReport("cashflow"))
                 {
                     Log.Information("Application Automation failed !!");
+                    return;
                 }
-                /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
                 {
                     Log.Information("Application Automation failed !!");
@@ -191,21 +203,20 @@ namespace DSAccurateDesktopKPN
                 if (!OpenReport("labarugi"))
                 {
                     Log.Information("Application Automation failed !!");
+                    return;
                 }
-                /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
                 {
                     Log.Information("Application Automation failed !!");
                     return;
                 }
 
-
                 /* Try to navigare and open 'Laba/Rugi' report */
                 if (!OpenReport("neraca"))
                 {
                     Log.Information("Application Automation failed !!");
+                    return;
                 }
-                /* Closing Workspaces that contain all report tab */
                 if (!ClosingWorkspace())
                 {
                     Log.Information("Application Automation failed !!");
@@ -311,6 +322,7 @@ namespace DSAccurateDesktopKPN
             {
                 appx = Application.Launch(@$"{appExe}");
                 DesktopWindow = appx.GetMainWindow(automationUIA3);
+                pid = appx.ProcessId;
 
                 // Wait until Accurate window ready
                 // FlaUI.Core.Input.Wait.UntilResponsive(DesktopWindow.FindFirstChild(), TimeSpan.FromMilliseconds(5000));
@@ -328,11 +340,24 @@ namespace DSAccurateDesktopKPN
                     return false;
                 }
                 Log.Information("Element Interaction on property class named -> " + ele.Properties.ClassName.ToString());
-
-                ele.FindFirstChild(cf => cf.ByName("OK")).AsButton().Click();
+                
+                var eleOk = ele.FindFirstChild(cf => cf.ByName("OK"));
+                ele.SetForeground();
+                Mouse.MoveTo(eleOk.GetClickablePoint());
+                Mouse.Click();
                 Log.Information("Clicking 'OK' button...");
 
-                ele = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByClassName("TsuiSkinMenuBar")));
+                // using main Accurate window
+                ele = null;
+                AutomationElement[] auEle = window.FindAllDescendants(cr => cr.ByClassName("TsuiSkinMenuBar"));
+                foreach (AutomationElement item in auEle)
+                {
+                    if (item.Properties.ProcessId == pid)
+                    {
+                        ele = item;
+                        break;
+                    }
+                }
                 if (ele is null)
                 {
                     Log.Information($"[Step #2] Quitting, end of OpenDB automation function !!");
@@ -350,8 +375,10 @@ namespace DSAccurateDesktopKPN
                 }
                 Log.Information("Element Interaction on property named -> " + ele.Properties.Name.ToString());
                 ele.Click();
+                Thread.Sleep(1000);
 
                 // Context
+                ele = null;
                 ele = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByName("Context")));
                 if (ele is null)
                 {
@@ -371,13 +398,20 @@ namespace DSAccurateDesktopKPN
                 }
                 Log.Information("Element Interaction on property named 'Context' with Child id# -> " + ele.Properties.AutomationId.ToString());
                 ele.Click();
-                //System.Windows.Forms.SendKeys.SendWait("o");
-                //Log.Information("Then sending key 'o'...");
                 Thread.Sleep(1000);
 
-                //Open Database
-                //ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Open Database")));
-                ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Buka Database")));
+                //Using opened Database window
+                // ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Buka Database")));
+                ele = null;
+                auEle = window.FindAllDescendants(cr => cr.ByName("Buka Database"));
+                foreach (AutomationElement item in auEle)
+                {
+                    if (item.Properties.ProcessId == pid)
+                    {
+                        ele = item;
+                        break;
+                    }
+                }
                 if (ele is null)
                 {
                     Log.Information($"[Step #6 Quitting, end of OpenDB automation function !!");
@@ -401,17 +435,17 @@ namespace DSAccurateDesktopKPN
                     Thread.Sleep(1000);
 
                     //* Findng alias window under desktop
-                    ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Alias")));
+                    var MainEle = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Alias")));
                     if (ele is null)
                     {
                         Log.Information("[Step #8] Quitting, end of OpenDB automation function !!");
                         return false;
                     }
-                    Log.Information("Element Interaction on property named -> " + ele.Properties.Name.ToString());
-                    ele.SetForeground();
+                    Log.Information("Element Interaction on property named -> " + MainEle.Properties.Name.ToString());
+                    MainEle.SetForeground();
 
                     //* clicking on {DBaliasname}
-                    ele = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByName(DBaliasname)));
+                    ele = WaitForElement(() => MainEle.FindFirstDescendant(cr => cr.ByName(DBaliasname)));
                     if (ele is null)
                     {
                         Log.Information("[Step #8] Quitting, end of OpenDB automation function !!");
@@ -421,7 +455,7 @@ namespace DSAccurateDesktopKPN
                     ele.Click();
 
                     //* clicking on 'Buka' button
-                    ele = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByName("Buka")));
+                    ele = WaitForElement(() => MainEle.FindFirstDescendant(cr => cr.ByName("Buka")));
                     if (ele is null)
                     {
                         Log.Information("[Step #8] Quitting, end of OpenDB automation function !!");
@@ -468,7 +502,16 @@ namespace DSAccurateDesktopKPN
             try
             {
                 //var ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Login")));
-                var ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Daftar")));
+                AutomationElement ele = null;
+                AutomationElement[] auEle = window.FindAllDescendants(cr => cr.ByName("Daftar"));
+                foreach (AutomationElement item in auEle)
+                {
+                    if (item.Properties.ProcessId == pid)
+                    {
+                        ele = item;
+                        break;
+                    }
+                }
                 if (ele is null)
                 {
                     Log.Information($"[Step #{step += 1}] Quitting, end of login automation function !!");
@@ -477,10 +520,10 @@ namespace DSAccurateDesktopKPN
                 Log.Information("Element Interaction on property named -> " + ele.Properties.Name.ToString());
 
                 var ele2 = ele.FindFirstDescendant(cf => cf.ByClassName("TEdit")).AsTextBox();
-                ele2.Enter(LoginId + "\t");
+                ele2.Enter(loginId + "\t");
                 Log.Information("Sending Login Id...");
 
-                System.Windows.Forms.SendKeys.SendWait(LoginPassword);
+                System.Windows.Forms.SendKeys.SendWait(loginPassword);
                 Log.Information("Sending password...");
 
                 ele.FindFirstDescendant(cf => cf.ByName("OK")).AsButton().Click();
@@ -500,7 +543,16 @@ namespace DSAccurateDesktopKPN
             {
                 /** Start downloading report process **/
                 /* Travesing back to accurate desktop main windows */
-                var ele1 = window.FindFirstDescendant(cf => cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                AutomationElement ele1 = null;
+                AutomationElement[] auEle = window.FindAllDescendants(cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                foreach (AutomationElement item in auEle)
+                {
+                    if (item.Properties.ProcessId == pid)
+                    {
+                        ele1 = item;
+                        break;
+                    }
+                }
                 if (ele1 is null)
                 {
                     Log.Information($"[Step #1 Quitting, end of DownloadReport automation function !!");
@@ -510,7 +562,7 @@ namespace DSAccurateDesktopKPN
                 Thread.Sleep(500);
 
                 var ele = ele1.FindFirstDescendant(cf => cf.ByName("PriviewToolBar"));
-                if (ele1 is null)
+                if (ele is null)
                 {
                     Log.Information($"[Step #2 Quiting, end of DownloadReport automation function !!");
                     return false;
@@ -522,7 +574,15 @@ namespace DSAccurateDesktopKPN
                 Thread.Sleep(1000);
 
                 /* The export button action resulting new window opened */
-                ele1 = window.FindFirstDescendant(cf => cf.ByName("Export to Excel"));
+                auEle = window.FindAllDescendants(cf => cf.ByName("Export to Excel"));
+                foreach (AutomationElement item in auEle)
+                {
+                    if (item.Properties.ProcessId == pid)
+                    {
+                        ele1 = item;
+                        break;
+                    }
+                }
                 if (ele1 is null)
                 {
                     Log.Information($"[Step #3 Quitting, end of DownloadReport automation function !!");
@@ -636,40 +696,20 @@ namespace DSAccurateDesktopKPN
             }
         }
 
-        private static void DeleteSupportingFiles(string FolderName, int fileExtEnum)
-        {
-            try
-            {
-                // Delete Excel files
-                var fileextpattern = "";
-                switch (fileExtEnum)
-                {
-                    case 0:
-                        fileextpattern = "*.xl*";
-                        break;
-                    case 1:
-                        fileextpattern = "*.log";
-                        break;
-                    case 2:
-                        fileextpattern = "*.zip";
-                        break;
-                }
-                var supportFiles = Directory.EnumerateFiles(FolderName, fileextpattern, SearchOption.AllDirectories);
-                foreach (var excelFile in supportFiles)
-                {
-                    File.Delete(excelFile);
-                    Console.WriteLine($"Deleted Excel file: {excelFile}");
-                }
-            }
-            catch (Exception)
-            { throw; }
-        }
-
         private static bool OpenReport(string reportType)
         {
             try
             {
-                var mainElement = WaitForElement(() => window.FindFirstDescendant(cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring)));
+                AutomationElement mainElement = null;
+                AutomationElement[] auEle = window.FindAllDescendants(cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                foreach (AutomationElement item in auEle)
+                {
+                    if (item.Properties.ProcessId  == pid)
+                    {
+                        mainElement = item;
+                        break;
+                    }
+                }
                 if (mainElement is null)
                 {
                     Log.Information($"[Step #1] Quitting, end of OpenReport automation function.");
@@ -698,8 +738,6 @@ namespace DSAccurateDesktopKPN
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + ele.Properties.Name.ToString());
-                //ele.AsMenu().Focus();
-                //ele.AsMenu().Click();
                 var pos = ele.GetClickablePoint();
                 Mouse.MoveTo(pos.X, pos.Y);
                 Mouse.Click();
@@ -814,8 +852,16 @@ namespace DSAccurateDesktopKPN
                 Thread.Sleep(3000);
 
                 // Opening Report Format Window
-                var reportFormatElement = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByName("Report Format")).AsWindow());
-
+                AutomationElement reportFormatElement = null;
+                auEle = window.FindAllDescendants(cr => cr.ByName("Report Format"));
+                foreach (AutomationElement item in auEle)
+                {
+                    if (item.Properties.ProcessId == pid)
+                    {
+                        reportFormatElement = item;
+                        break;
+                    }
+                }
                 if (reportFormatElement == null)
                 {
                     Log.Information($"[Step #9] Quitting, end of OpenReport automation function.");
@@ -825,8 +871,8 @@ namespace DSAccurateDesktopKPN
                 reportFormatElement.Focus();
                 Thread.Sleep(2000);
 
-                // Filters && Parameters => Under 'Desktop' windows
-                var filtersAndParametersElement = reportFormatElement.FindFirstDescendant(cf.ByName(" Filter && Parameter", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                // Filters && Parameters => find it under 'reportFormatElement' windows tree
+                var filtersAndParametersElement = reportFormatElement.FindFirstDescendant(cf.ByName("Filter && Parameter", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
 
                 if (filtersAndParametersElement == null)
                 {
@@ -836,6 +882,33 @@ namespace DSAccurateDesktopKPN
                 Log.Information("Element Interaction on property named -> " + filtersAndParametersElement.Properties.Name.ToString());
                 filtersAndParametersElement.Focus();
                 Thread.Sleep(500);
+
+                if (reportType == "labarugi")
+                {
+                    AutomationElement[] checkboxes = filtersAndParametersElement.FindAllDescendants(cr => cr.ByClassName("TCheckBox")); 
+                    foreach ( AutomationElement checkbox in checkboxes )
+                    {
+                        switch (checkbox.Name)
+                        {
+                            case "Tampilkan Induk":
+                                checkbox.AsCheckBox().IsChecked = true;
+                                break;
+                            case "Tampilkan Anak":
+                                checkbox.AsCheckBox().IsChecked = false;
+                                break;
+                            case "Termasuk saldo nol":
+                                checkbox.AsCheckBox().IsChecked = true;
+                                break;
+                            case "Tampilkan jumlah Induk":
+                                checkbox.AsCheckBox().IsChecked = true;
+                                break;
+                            case "Tampilkan Total":
+                                checkbox.AsCheckBox().IsChecked = false;
+                                break;
+                        }
+                        Thread.Sleep(2000);
+                    }
+                }
 
                 // TabDateFromTo
                 var tabDateFromToElement = filtersAndParametersElement.FindFirstDescendant(cf.ByName("TabDate", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
@@ -1044,11 +1117,11 @@ namespace DSAccurateDesktopKPN
                 Thread.Sleep(5000);
                 if (strStatusCode == "200")
                 {
-                    Log.Information("DATA TRANSACTION SHARING - SELESAI");
+                    Log.Information("DATA ACCOUNTING SHARING - SELESAI");
                 }
                 else
                 {
-                    Log.Information("DATA TRANSACTION SHARING - ERROR, cUrl STATUS CODE :" + strStatusCode);
+                    Log.Information("DATA ACCOUNTING SHARING - ERROR, cUrl STATUS CODE :" + strStatusCode);
                 }
 
                 // Send Log file to the API server 
@@ -1133,23 +1206,6 @@ namespace DSAccurateDesktopKPN
             return lastDay.ToString("dd");
         }
 
-        static void CheckAndDeleteZipFile(string folder)
-        {
-            try
-            {
-                var pattern = "*.zip";
-                var zipFiles = Directory.EnumerateFiles(folder, pattern);
-                foreach (var zipFile in zipFiles)
-                {
-                    File.Delete(zipFile);
-                    Log.Information($"Deleted ZIP file(s): {zipFile}");
-                }
-            }
-            catch (Exception ex)
-            {
-                Log.Information($"Error during ZIP file deletion: {ex.Message}");
-            }
-        }
 
 
 
