@@ -4,12 +4,7 @@ using Windows.System.Profile;
 
 public abstract class DirectoryManipulator
 {
-    public enum FileExtension
-    {
-        Excel,
-        Log,
-        Zip
-    }
+
 
 
 
@@ -23,7 +18,7 @@ public abstract class DirectoryManipulator
         return path;
     }
 
-    public virtual string DeleteFilesBase(string path, FileExtension extension)
+    public virtual string DeleteFilesBase(string path, string extension)
     {
         DirectoryInfo directory = new DirectoryInfo(path);
         foreach (FileInfo file in directory.GetFiles($"{extension}"))
@@ -68,8 +63,13 @@ public abstract class DirectoryManipulator
 }
 public class  MyDirectoryManipulator : DirectoryManipulator
 {
-   
 
+    public enum FileExtension
+    {
+        Excel,
+        Log,
+        Zip
+    }
     public override string CreateDirectory(string path)
     {
         var value = base.CreateDirectory(path)  == "" ? "" : $"Creating directory at {path}";
@@ -77,7 +77,7 @@ public class  MyDirectoryManipulator : DirectoryManipulator
 
     }
 
-    public string DeleteFiles(string path, DirectoryManipulator.FileExtension fileExtension)
+    public string DeleteFiles(string path, FileExtension fileExtension)
     {
         string extension = string.Empty;
 
@@ -93,7 +93,7 @@ public class  MyDirectoryManipulator : DirectoryManipulator
                 extension = "*.zip";
                 break;
         }
-        base.DeleteFilesBase(path, fileExtension);
+        base.DeleteFilesBase(path, extension);
         return ($"Deleting files with extension {extension} in {path}");
     }
 

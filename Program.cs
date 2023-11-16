@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using FlaUI.Core.WindowsAPI;
 using static DirectoryManipulator;
 using FlaUI.Core.Tools;
+using System.Diagnostics;
 
 namespace DSAccurateDesktopKPN
 {
@@ -42,14 +43,14 @@ namespace DSAccurateDesktopKPN
 
         const UInt32 WM_CLOSE = 0x0010;
 
+        [DllImport("user32.dll")]
+        public static extern bool BlockInput(bool fBlockIt);
+
         [DllImport("user32.dll", SetLastError = true)]
         static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern IntPtr SendMessage(IntPtr hWnd, UInt32 Msg, IntPtr wParam, IntPtr lParam);
-
-        [DllImport("user32.dll")]
-        public static extern bool BlockInput(bool fBlockIt);
 
         private static AutomationElement WaitForElement(Func<AutomationElement> findElementFunc)
         {
@@ -70,12 +71,13 @@ namespace DSAccurateDesktopKPN
         static void closeWarningDialogBox(string Title)
         {
             var hWnd = FindWindow(null, Title);
-            if (hWnd != IntPtr.Zero)
+            if (hWnd != IntPtr.Zero )
             {
                 SendMessage(hWnd, WM_CLOSE, 0, 0);
                 Log.Information("Closing dialog message box.");
             }
         }
+
 
         static void Main(string[] args)
         {
@@ -83,9 +85,9 @@ namespace DSAccurateDesktopKPN
             {
                 BlockInput(true);
                 var supportFunc = new MyDirectoryManipulator();
-                supportFunc.DeleteFiles(appfolder, FileExtension.Excel);
-                supportFunc.DeleteFiles(appfolder, FileExtension.Log);
-                supportFunc.DeleteFiles(appfolder, FileExtension.Zip);
+                supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Excel);
+                supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Log);
+                supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Zip);
 
                 if (!Directory.Exists(appfolder))
                 {
@@ -252,14 +254,23 @@ namespace DSAccurateDesktopKPN
             try
             {
                 /* Travesing back to accurate desktop main windows */
-                var eleMain = window.FindFirstDescendant(cf => cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
-                if (eleMain is null)
+                AutomationElement mainElement = null;
+                AutomationElement[] auEle = window.FindAllDescendants(cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                foreach (AutomationElement item in auEle)
+                {
+                    if (item.Properties.ProcessId == pid)
+                    {
+                        mainElement = item;
+                        break;
+                    }
+                }
+                if (mainElement is null)
                 {
                     Log.Information($"[Step #1 Quitting, end of ClosingWorkspace automation function !!");
                     return false;
                 }
-                Log.Information("Element Interaction on property named -> " + eleMain.Properties.Name.ToString());
-                eleMain.SetForeground();
+                Log.Information("Element Interaction on property named -> " + mainElement.Properties.Name.ToString());
+                mainElement.SetForeground();
                 Thread.Sleep(1000);
 
                 var ele = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByClassName("TsuiSkinMenuBar")));
@@ -326,8 +337,33 @@ namespace DSAccurateDesktopKPN
 
                 // Wait until Accurate window ready
                 // FlaUI.Core.Input.Wait.UntilResponsive(DesktopWindow.FindFirstChild(), TimeSpan.FromMilliseconds(5000));
+                AutomationElement mainElement = null;
+                AutomationElement[] auEle = window.FindAllDescendants(cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                foreach (AutomationElement item in auEle)
+                {
+                    if (item.Properties.ProcessId == pid)
+                    {
+                        mainElement = item;
+                        break;
+                    }
+                }
+                if (mainElement is null)
+                {
+                    Log.Information($"[Step #1] Quitting, end of OpenReport automation function.");
+                    return false;
+                }
+                Log.Information("Element Interaction on property named -> " + mainElement.Properties.Name.ToString());
+                //mainElement.SetForeground();
                 Thread.Sleep(5000);
-                closeWarningDialogBox("Selamat Datang di");
+                for (int i = 0; i <= 3; i++)
+                {
+                    try
+                    {
+                        closeWarningDialogBox("Selamat Datang di");
+                    }
+                    catch
+                    { }
+                }
                 Log.Information("Action -> Closing 'Welcome to Accurate' window.");
 
                 Thread.Sleep(1500);
@@ -349,7 +385,7 @@ namespace DSAccurateDesktopKPN
 
                 // using main Accurate window
                 ele = null;
-                AutomationElement[] auEle = window.FindAllDescendants(cr => cr.ByClassName("TsuiSkinMenuBar"));
+                auEle = window.FindAllDescendants(cr => cr.ByClassName("TsuiSkinMenuBar"));
                 foreach (AutomationElement item in auEle)
                 {
                     if (item.Properties.ProcessId == pid)
@@ -716,7 +752,6 @@ namespace DSAccurateDesktopKPN
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + mainElement.Properties.Name.ToString());
-                mainElement.SetForeground();
                 Thread.Sleep(500);
 
                 var ele = WaitForElement(() => mainElement.FindFirstDescendant(cr => cr.ByClassName("TsuiSkinMenuBar")));
@@ -824,13 +859,10 @@ namespace DSAccurateDesktopKPN
                         reportName = "Daftar Pelanggan";
                         break;
                     case "stock":
-                        reportName = "Rincian Valuasi Persediaan";
+                        reportName = "Ringkasan Valuasi Persediaan";
                         break;
                     case "labarugi":
                         reportName = "Laba/Rugi (Standar)";
-                        // -->> await page.Locator("label").Filter(new() { HasText = "Tampilkan Akun Induk" }).Locator("span").First.ClickAsync();
-                        // -->> await page.Locator("label").Filter(new() { HasText = "Tampilkan data dengan Saldo Nol" }).Locator("span").First.ClickAsync();
-                        // -->> await page.Locator("label").Filter(new() { HasText = "Tampilkan Saldo Akun Induk" }).Locator("span").First.ClickAsync();
                         break;
                     case "cashflow":
                         reportName = "Arus Kas per Akun";
@@ -959,8 +991,16 @@ namespace DSAccurateDesktopKPN
         {
             try
             {
-                var mainElement = WaitForElement(() => window.FindFirstDescendant(cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring)));
-                if (mainElement is null)
+                AutomationElement mainElement = null;
+                AutomationElement[] auEle = window.FindAllDescendants(cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                foreach (AutomationElement item in auEle)
+                {
+                    if (item.Properties.ProcessId == pid)
+                    {
+                        mainElement = item;
+                        break;
+                    }
+                }
                 {
                     Log.Information($"[Step #1] Quitting, end of CloseApp automation function.");
                     return false;
