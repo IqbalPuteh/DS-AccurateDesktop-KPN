@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Security.Policy;
 using Windows.System.Profile;
 
 public abstract class DirectoryManipulator
@@ -108,6 +109,16 @@ public class  MyDirectoryManipulator : DirectoryManipulator
         base.SendFileToUrl(filePath, url);
         return ($"Sending file at {filePath} to {url}");
 
+    }
+
+    public string CopyFolderFiles(string sourcePath, string destinationPath) 
+    {
+        // Copy all the files & replace any files with the same name
+        foreach (string newPath in Directory.GetFiles(sourcePath, "*.*"))
+        {
+            File.Copy(newPath, newPath.Replace(sourcePath, destinationPath), true);
+        }
+        return ($"Copiying file(s) from {sourcePath} to {destinationPath}");
     }
 }
 

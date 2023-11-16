@@ -12,6 +12,7 @@ using FlaUI.Core.WindowsAPI;
 using static DirectoryManipulator;
 using FlaUI.Core.Tools;
 using System.Diagnostics;
+using System.Runtime.Versioning;
 
 namespace DSAccurateDesktopKPN
 {
@@ -28,12 +29,13 @@ namespace DSAccurateDesktopKPN
         static string appExe = ConfigurationManager.AppSettings["erpappnamepath"];
         static string loginId = ConfigurationManager.AppSettings["loginId"];
         static string loginPassword = ConfigurationManager.AppSettings["password"];
-        static string enableconsolelog = ConfigurationManager.AppSettings["enableconsolelog"].ToUpper();
-        static string issandbox = ConfigurationManager.AppSettings["uploadtosandbox"].ToUpper();
-        static string getacctrpt = ConfigurationManager.AppSettings["getaccountingreport"];
         static string DBpath = ConfigurationManager.AppSettings["DBaddresspath"].ToUpper();
         static string DBaliasflag = ConfigurationManager.AppSettings["DBaliasflag"].ToUpper();
         static string DBaliasname = ConfigurationManager.AppSettings["DBaliasname"];
+        static string issandbox = ConfigurationManager.AppSettings["uploadtosandbox"].ToUpper();
+        static string issecurehttp = ConfigurationManager.AppSettings["issecurehttp"];
+        static string isacctrptincluded = ConfigurationManager.AppSettings["isacctrptincluded"];
+        static string isconsolelogenable = ConfigurationManager.AppSettings["isconsolelogenable"].ToUpper();
         static string appfolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile) + @"\Downloads\" + ConfigurationManager.AppSettings["appfolder"];
         static string uploadfolder = appfolder + @"\" + ConfigurationManager.AppSettings["uploadfolder"];
         static string sharingfolder = appfolder + @"\" + ConfigurationManager.AppSettings["sharingfolder"];
@@ -85,10 +87,9 @@ namespace DSAccurateDesktopKPN
             {
                 BlockInput(true);
                 var supportFunc = new MyDirectoryManipulator();
+                supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Zip);
                 supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Excel);
                 supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Log);
-                supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Zip);
-
                 if (!Directory.Exists(appfolder))
                 {
                     Directory.CreateDirectory(appfolder);
@@ -96,7 +97,7 @@ namespace DSAccurateDesktopKPN
                     Directory.CreateDirectory(sharingfolder);
                 }
                 var config = new LoggerConfiguration();
-                if (enableconsolelog == "Y")
+                if (isconsolelogenable == "Y")
                 {
                     config.WriteTo.Console();
                 }
@@ -165,7 +166,7 @@ namespace DSAccurateDesktopKPN
                     return;
                 }
 
-                if (getacctrpt != "Y")
+                if (isacctrptincluded != "Y")
                 {
                     if (!CloseApp())
                     {
@@ -1001,6 +1002,7 @@ namespace DSAccurateDesktopKPN
                         break;
                     }
                 }
+                if (mainElement is null)
                 {
                     Log.Information($"[Step #1] Quitting, end of CloseApp automation function.");
                     return false;
@@ -1103,23 +1105,23 @@ namespace DSAccurateDesktopKPN
                 Log.Information("Moving transaction excel reports file to uploaded folder...");
                 var path = appfolder + @"\Master_Outlet.xls";
                 var path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_OUTLET.xls";
-                File.Move(path, path2, true);
+                File.Copy(path, path2, true);
                 path = appfolder + @"\Sales_Data.xls";
                 path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_SALES.xls";
-                File.Move(path, path2, true);
+                File.Copy(path, path2, true);
                 path = appfolder + @"\Repayment_Data.xls";
                 path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_AR.xls";
-                File.Move(path, path2, true);
+                File.Copy(path, path2, true);
 
                 // set zipping name for files
                 Log.Information("Zipping transaction file(s)");
                 var strZipFile = dtID + "-" + dtName + "_" + strDsPeriod + ".zip";
                 ZipFile.CreateFromDirectory(uploadfolder, sharingfolder + Path.DirectorySeparatorChar + strZipFile);
 
-                // Send the ZIP file to the API server 
+                // Send the accounting files ZIP file to the API server 
                 Log.Information("Sending transaction ZIP file to the API server...");
                 var strStatusCode = "0"; // varible for debugging Curl test
-                strStatusCode = SendReq(sharingfolder + Path.DirectorySeparatorChar + strZipFile, issandbox, "Y");
+                //strStatusCode = SendReq(sharingfolder + Path.DirectorySeparatorChar + strZipFile, issandbox, issecurehttp);
                 Thread.Sleep(5000);
                 if (strStatusCode == "200")
                 {
@@ -1129,58 +1131,62 @@ namespace DSAccurateDesktopKPN
                 {
                     Log.Information("DATA TRANSACTION SHARING - ERROR, cUrl STATUS CODE :" + strStatusCode);
                 }
+                var supportFunc = new MyDirectoryManipulator();
+                supportFunc.DeleteFiles(uploadfolder, MyDirectoryManipulator.FileExtension.Excel);
+                if (isacctrptincluded == "Y")
+                { 
+                    // move acconting reports standart excel
+                    Log.Information("Moving standart excel reports file to uploaded folder...");
+                    path = appfolder + @"\Laporan_Stock.xls";
+                    path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_STOCK.xls";
+                    File.Copy(path, path2, true);
+                    path = appfolder + @"\Laporan_NeracaSaldo.xls";
+                    path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_NERACA.xls";
+                    File.Copy(path, path2, true);
+                    path = appfolder + @"\Laporan_ArusKas.xls";
+                    path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_ARUSKAS.xls";
+                    File.Copy(path, path2, true);
+                    path = appfolder + @"\Laporan_LabaRugi.xls";
+                    path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_LABARUGI.xls";
+                    File.Copy(path, path2, true);
 
-                // move acconting reports standart excel
-                Log.Information("Moving standart excel reports file to uploaded folder...");
-                path = appfolder + @"\Laporan_Stock.xls";
-                path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_STOCK.xls";
-                File.Move(path, path2, true);
-                path = appfolder + @"\Laporan_NeracaSaldo.xls";
-                path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_NERACA.xls";
-                File.Move(path, path2, true);
-                path = appfolder + @"\Laporan_ArusKas.xls";
-                path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_ARUSKAS.xls";
-                File.Move(path, path2, true);
-                path = appfolder + @"\Laporan_LabaRugi.xls";
-                path2 = uploadfolder + @"\ds-" + dtID + "-" + dtName + "-" + strDsPeriod + "_LABARUGI.xls";
-                File.Move(path, path2, true);
+                    // set zipping name for files
+                    Log.Information("Zipping accounting file(s)");
+                    strZipFile = dtID + "-" + dtName + "-Financial_Statement-" + strDsPeriod + ".zip";
+                    ZipFile.CreateFromDirectory(uploadfolder, sharingfolder + Path.DirectorySeparatorChar + strZipFile);
 
-                // set zipping name for files
-                Log.Information("Zipping accounting file(s)");
-                strZipFile = dtID + "-" + dtName + "_" + strDsPeriod + ".zip";
-                ZipFile.CreateFromDirectory(uploadfolder, sharingfolder + Path.DirectorySeparatorChar + strZipFile);
-
-                // Send the ZIP file to the API server 
-                Log.Information("Sending accounting ZIP file to the API server...");
-                strStatusCode = "0"; // varible for debugging Curl test
-                strStatusCode = SendReq(sharingfolder + Path.DirectorySeparatorChar + strZipFile, issandbox, "Y");
-                Thread.Sleep(5000);
-                if (strStatusCode == "200")
-                {
-                    Log.Information("DATA ACCOUNTING SHARING - SELESAI");
-                }
-                else
-                {
-                    Log.Information("DATA ACCOUNTING SHARING - ERROR, cUrl STATUS CODE :" + strStatusCode);
+                    // Send the ZIP file to the API server 
+                    Log.Information("Sending accounting ZIP file to the API server...");
+                    strStatusCode = "0"; // varible for debugging Curl test
+                    strStatusCode = SendReq(sharingfolder + Path.DirectorySeparatorChar + strZipFile, issandbox, issecurehttp);
+                    Thread.Sleep(5000);
+                    if (strStatusCode == "200")
+                    {
+                        Log.Information("DATA ACCOUNTING SHARING - SELESAI");
+                    }
+                    else
+                    {
+                        Log.Information("DATA ACCOUNTING SHARING - ERROR, cUrl STATUS CODE :" + strStatusCode);
+                    }
                 }
 
                 // Send Log file to the API server 
                 path = appfolder + Path.DirectorySeparatorChar + logfilename;
-                path2 = uploadfolder + Path.DirectorySeparatorChar + logfilename;
                 Log.Information("Sending log file to the API server...");
-                File.Copy(path, path2, true);
-                strStatusCode = SendReq(path2, issandbox, "Y");
+                //strStatusCode = SendReq(path, issandbox, issecurehttp);
                 Thread.Sleep(5000);
+                supportFunc.DeleteFiles(uploadfolder, MyDirectoryManipulator.FileExtension.Excel);
+                supportFunc.CopyFolderFiles(appfolder, uploadfolder);
             }
             catch (Exception ex)
             {
                 // Log any exceptions that occur during file operations
                 Log.Information($"Error during ZIP and send: {ex.Message}");
-                throw ex;
+                //throw ex;
             }
         }
 
-        private static string SendReq(string strFileDataInfo, string strSandboxBool, string SecureHTTP)
+        private static string SendReq(string strFileDataInfo, string strSandboxBool, string isSecureHTTP)
         {
             try
             {
@@ -1189,12 +1195,12 @@ namespace DSAccurateDesktopKPN
                 if (strSandboxBool == "Y")
                 {
                     text2 = "KQtbMk32csiJvm8XDAx2KnRAdbtP3YVAnJpF8R5cb2bcBr8boT3dTvGc23c6fqk2NknbxpdarsdF3M4V";
-                    text = ((!(SecureHTTP == "Y")) ? "http://sandbox.fairbanc.app/api/documents" : "https://sandbox.fairbanc.app/api/documents");
+                    text = ((!(isSecureHTTP == "Y")) ? "http://sandbox.fairbanc.app/api/documents" : "https://sandbox.fairbanc.app/api/documents");
                 }
                 else
                 {
                     text2 = "2S0VtpYzETxDrL6WClmxXXnOcCkNbR5nUCCLak6EHmbPbSSsJiTFTPNZrXKk2S0VtpYzETxDrL6WClmx";
-                    text = ((!(SecureHTTP == "Y")) ? "http://dashboard.fairbanc.app/api/documents" : "https://dashboard.fairbanc.app/api/documents");
+                    text = ((!(isSecureHTTP == "Y")) ? "http://dashboard.fairbanc.app/api/documents" : "https://dashboard.fairbanc.app/api/documents");
                 }
 
                 Log.Information("Preparing to send a request to the API server...");
