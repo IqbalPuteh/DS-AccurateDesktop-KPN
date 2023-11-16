@@ -373,17 +373,19 @@ namespace DSAccurateDesktopKPN
                 var ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Warning")));
                 if (ele is null)
                 {
-                    Log.Information($"[Step #1] Quitting, end of OpenDB automation function !!");
-                    return false;
+                    Log.Information($"[Step #1] failed, end of OpenDB automation function !!");
+                    //return false;
                 }
-                Log.Information("Element Interaction on property class named -> " + ele.Properties.ClassName.ToString());
-                
-                var eleOk = ele.FindFirstChild(cf => cf.ByName("OK"));
-                ele.SetForeground();
-                Mouse.MoveTo(eleOk.GetClickablePoint());
-                Mouse.Click();
-                Log.Information("Clicking 'OK' button...");
+                else
+                {
+                    Log.Information("Element Interaction on property class named -> " + ele.Properties.ClassName.ToString());
 
+                    var eleOk = ele.FindFirstChild(cf => cf.ByName("OK"));
+                    ele.SetForeground();
+                    Mouse.MoveTo(eleOk.GetClickablePoint());
+                    Mouse.Click();
+                    Log.Information("Clicking 'OK' button...");
+                }
                 // using main Accurate window
                 ele = null;
                 auEle = window.FindAllDescendants(cr => cr.ByClassName("TsuiSkinMenuBar"));
@@ -538,6 +540,7 @@ namespace DSAccurateDesktopKPN
         {
             try
             {
+                Thread.Sleep(5000);
                 //var ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Login")));
                 AutomationElement ele = null;
                 AutomationElement[] auEle = window.FindAllDescendants(cr => cr.ByName("Daftar"));
@@ -578,6 +581,7 @@ namespace DSAccurateDesktopKPN
         {
             try
             {
+                Thread.Sleep(10000);
                 /** Start downloading report process **/
                 /* Travesing back to accurate desktop main windows */
                 AutomationElement ele1 = null;
@@ -909,7 +913,7 @@ namespace DSAccurateDesktopKPN
 
                 if (filtersAndParametersElement == null)
                 {
-                    Log.Information($"[Step #10] Quitting, end of OpenReport automation10unction.");
+                    Log.Information($"[Step #10] Quitting, end of OpenReport automation function.");
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + filtersAndParametersElement.Properties.Name.ToString());
@@ -947,7 +951,7 @@ namespace DSAccurateDesktopKPN
                 var tabDateFromToElement = filtersAndParametersElement.FindFirstDescendant(cf.ByName("TabDate", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
                 if (tabDateFromToElement == null)
                 {
-                    Log.Information($"[Step #11] Quitting, end of OpenReport aut[Step #11] ction.");
+                    Log.Information($"[Step #11] Quitting, end of OpenReport automation function.");
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + tabDateFromToElement.Properties.Name.ToString());
@@ -977,7 +981,6 @@ namespace DSAccurateDesktopKPN
 
                     }
                 }
-
                 reportFormatElement.FindFirstDescendant(cf.ByName("OK")).AsButton().Click();
                 return DownloadReport(reportType);
             }
@@ -1121,7 +1124,7 @@ namespace DSAccurateDesktopKPN
                 // Send the accounting files ZIP file to the API server 
                 Log.Information("Sending transaction ZIP file to the API server...");
                 var strStatusCode = "0"; // varible for debugging Curl test
-                //strStatusCode = SendReq(sharingfolder + Path.DirectorySeparatorChar + strZipFile, issandbox, issecurehttp);
+                strStatusCode = SendReq(sharingfolder + Path.DirectorySeparatorChar + strZipFile, issandbox, issecurehttp);
                 Thread.Sleep(5000);
                 if (strStatusCode == "200")
                 {
@@ -1172,10 +1175,13 @@ namespace DSAccurateDesktopKPN
 
                 // Send Log file to the API server 
                 path = appfolder + Path.DirectorySeparatorChar + logfilename;
+                path2 = uploadfolder + Path.DirectorySeparatorChar + logfilename;
+                File.Copy(path, path2, true);
                 Log.Information("Sending log file to the API server...");
-                //strStatusCode = SendReq(path, issandbox, issecurehttp);
+                strStatusCode = SendReq(path2, issandbox, issecurehttp);
                 Thread.Sleep(5000);
                 supportFunc.DeleteFiles(uploadfolder, MyDirectoryManipulator.FileExtension.Excel);
+                supportFunc.DeleteFiles(uploadfolder, MyDirectoryManipulator.FileExtension.Log);
                 supportFunc.CopyFolderFiles(appfolder, uploadfolder);
             }
             catch (Exception ex)
