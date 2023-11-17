@@ -7,6 +7,10 @@ using FlaUI.Core.AutomationElements;
 using System.Configuration;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
+using Serilog.Core;
+using Serilog.Sinks.File;
+using Serilog.Sinks.SystemConsole;
+using System.Diagnostics.Metrics;
 
 namespace DSAccurateDesktopKPN
 {
@@ -67,19 +71,18 @@ namespace DSAccurateDesktopKPN
         
         static void closeWarningDialogBox(string Title )
         {
-            string? lpclsname =null;
-            var hWnd = FindWindow(lpclsname, Title);
-            if (hWnd != IntPtr.Zero )
-            {
-                SendMessage(hWnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
-                Log.Information("Closing dialog message box.");
-            }
-            else
-            {
-                Log.Information($"Failed to close '{Title}' window.");
-            }
+            //string? lpclsname =null;
+            //var hWnd = FindWindow(lpclsname, Title);
+            //if (hWnd != IntPtr.Zero )
+            //{
+            //    SendMessage(hWnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
+            //    Log.Information("Closing dialog message box.");
+            //}
+            //else
+            //{
+            //    Log.Information($"Failed to close '{Title}' window.");
+            //}
         }
-
 
         static void Main(string[] args)
         {
@@ -108,15 +111,12 @@ namespace DSAccurateDesktopKPN
                     supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Excel);
                     supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Log);
                 }
-                var config = new LoggerConfiguration();
-                if (isconsolelogenable == "Y")
-                {
-                    config.WriteTo.Console();
-                }
                 logfilename = "DEBUG-" + dtID + "-" + dtName + ".log";
-                config.WriteTo.File(appfolder + Path.DirectorySeparatorChar + logfilename);
-                Log.Logger = config.CreateLogger();
-                var str = "";
+                Log.Logger = new LoggerConfiguration()
+                .WriteTo.File(appfolder + Path.DirectorySeparatorChar + logfilename)
+                .WriteTo.Console()
+                .CreateLogger();
+
                 Console.WriteLine($" *** Accurate Desktop ver.4 Automation -  by FAIRBANC ***");
                 Console.WriteLine($"");
                 Console.WriteLine($"Automasi akan dimulai !");
@@ -127,6 +127,8 @@ namespace DSAccurateDesktopKPN
                 Console.WriteLine($"******************************************************************");
                 Console.WriteLine($"");
                 Thread.Sleep(10000);
+                
+                
 
                 if (!OpenAppAndDBConfig())
                 {
@@ -135,7 +137,7 @@ namespace DSAccurateDesktopKPN
                 }
                 if (!LoginProcess())
                 {
-                    Log.Information("Application automation failed !!");
+                   Log.Information("Application automation failed !!");
                     return;
                 }
                 Log.Information("Now wait for 1 minute before clicking report...");
@@ -262,7 +264,7 @@ namespace DSAccurateDesktopKPN
                 {
                     automationUIA3.Dispose();
                 }
-                Log.CloseAndFlush();
+                Log.CloseAndFlush ();
                 //Console.ReadLine();
             }
         }
@@ -371,7 +373,6 @@ namespace DSAccurateDesktopKPN
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + mainElement.Properties.Name.ToString());
-
                 AutomationElement selamatWindowEle = null;
                 var auEle1 = window.FindAllDescendants(cf.ByName("Selamat Datang", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
                 foreach (AutomationElement item in auEle1)
@@ -738,7 +739,6 @@ namespace DSAccurateDesktopKPN
                     excelname = "Laporan_NeracaSaldo";
                     break;
             }
-            //System.Windows.Forms.SendKeys.SendWait($@"{appfolder}\{excelname}.");
             ele1.SetForeground();
             ele1.Focus();
             ele1.AsTextBox().Text = $@"{appfolder}\{excelname}";
@@ -758,7 +758,6 @@ namespace DSAccurateDesktopKPN
 
             /* Pause the app to wait file saving is finnished */
             Thread.Sleep(10000);
-
             return true;
         }
 
