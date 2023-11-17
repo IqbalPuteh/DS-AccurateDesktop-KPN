@@ -65,13 +65,18 @@ namespace DSAccurateDesktopKPN
             return element;
         }
         
-        static void closeWarningDialogBox(string Title)
+        static void closeWarningDialogBox(string Title )
         {
-            var hWnd = FindWindow(null, Title);
+            string? lpclsname =null;
+            var hWnd = FindWindow(lpclsname, Title);
             if (hWnd != IntPtr.Zero )
             {
                 SendMessage(hWnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
                 Log.Information("Closing dialog message box.");
+            }
+            else
+            {
+                Log.Information($"Failed to close '{Title}' window.");
             }
         }
 
@@ -80,6 +85,8 @@ namespace DSAccurateDesktopKPN
         {
             try
             {
+                var supportFunc = new MyDirectoryManipulator();
+                
                 int maxWidth = Console.LargestWindowWidth;
                 int maxHeight = Console.LargestWindowHeight;
                 Console.SetWindowPosition(0, 0);
@@ -88,15 +95,18 @@ namespace DSAccurateDesktopKPN
                 Console.BackgroundColor = ConsoleColor.DarkGray;
                 Console.ForegroundColor = ConsoleColor.White;
                 BlockInput(true);
-                var supportFunc = new MyDirectoryManipulator();
-                supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Zip);
-                supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Excel);
-                supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Log);
+
                 if (!Directory.Exists(appfolder))
                 {
                     Directory.CreateDirectory(appfolder);
                     Directory.CreateDirectory(uploadfolder);
                     Directory.CreateDirectory(sharingfolder);
+                }
+                else
+                {
+                    supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Zip);
+                    supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Excel);
+                    supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Log);
                 }
                 var config = new LoggerConfiguration();
                 if (isconsolelogenable == "Y")
@@ -113,22 +123,22 @@ namespace DSAccurateDesktopKPN
                 Console.WriteLine($"******************************************************************");
                 Console.WriteLine($"             Keyboard dan Mouse akan di matikan...                ");
                 Console.WriteLine($"     Komputer akan menjalankan oleh applikasi robot automasi...   ");
-                Console.WriteLine($" Aktifitas penggunakan komputer akan ter-BLOKIR sekitar 10 menit...");
+                Console.WriteLine($" Aktifitas penggunakan komputer akan ter-BLOKIR sekitar 10 menit. ");
                 Console.WriteLine($"******************************************************************");
                 Console.WriteLine($"");
                 Thread.Sleep(10000);
 
                 if (!OpenAppAndDBConfig())
                 {
-                    Log.Information("application automation failed !!");
+                    Log.Information("Application automation failed !!");
                     return;
                 }
                 if (!LoginProcess())
                 {
-                    Log.Information("application automation failed !!");
+                    Log.Information("Application automation failed !!");
                     return;
                 }
-                Log.Information("now wait for 1 minute before clicking report...");
+                Log.Information("Now wait for 1 minute before clicking report...");
                 Thread.Sleep(35000);
 
 
@@ -242,6 +252,10 @@ namespace DSAccurateDesktopKPN
             }
             finally
             {
+                Mouse.MoveTo(10, 100);
+                Console.Beep();
+                Thread.Sleep(500);
+                Console.Beep();
                 BlockInput(false);
                 Log.Information("Accurate Desktop ver.4 Automation - SELESAI");
                 if (automationUIA3 != null)
@@ -249,6 +263,7 @@ namespace DSAccurateDesktopKPN
                     automationUIA3.Dispose();
                 }
                 Log.CloseAndFlush();
+                //Console.ReadLine();
             }
         }
 
@@ -337,9 +352,9 @@ namespace DSAccurateDesktopKPN
                 appx = Application.Launch(@$"{appExe}");
                 DesktopWindow = appx.GetMainWindow(automationUIA3);
                 pid = appx.ProcessId;
+                Thread.Sleep(2000);
 
                 // Wait until Accurate window ready
-                // FlaUI.Core.Input.Wait.UntilResponsive(DesktopWindow.FindFirstChild(), TimeSpan.FromMilliseconds(5000));
                 AutomationElement mainElement = null;
                 AutomationElement[] auEle = window.FindAllDescendants(cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
                 foreach (AutomationElement item in auEle)
@@ -356,40 +371,51 @@ namespace DSAccurateDesktopKPN
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + mainElement.Properties.Name.ToString());
-                //mainElement.SetForeground();
-                Thread.Sleep(5000);
-                for (int i = 0; i <= 3; i++)
-                {
-                    try
-                    {
-                        closeWarningDialogBox("Selamat Datang di");
-                    }
-                    catch
-                    { }
-                }
-                Log.Information("Action -> Closing 'Welcome to Accurate' window.");
 
+                AutomationElement selamatWindowEle = null;
+                var auEle1 = window.FindAllDescendants(cf.ByName("Selamat Datang", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                foreach (AutomationElement item in auEle1)
+                {
+                    if (item.Properties.ProcessId == pid)
+                    {
+                        selamatWindowEle = item;
+                    }
+                }
+                if (selamatWindowEle == null)
+                {
+                    Log.Information($"[Step #1a] Quitting, end of OpenReport automation function.");
+                    return false;
+                }
+                var par = selamatWindowEle.BoundingRectangle;
+                var cordX = par.Right - 10;
+                var cordY = par.Top + 11;
+                Mouse.MoveTo(cordX, cordY);
+                Thread.Sleep(1000);
+                selamatWindowEle.SetForeground();
+                Mouse.Click();
+                Log.Information("Action -> Closing 'Welcome to Accurate' window.");
                 Thread.Sleep(1500);
 
                 /* Closing Warning diaLog box */
-                var ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Warning")));
-                if (ele is null)
-                {
-                    Log.Information($"[Step #1] failed, end of OpenDB automation function !!");
-                    //return false;
-                }
-                else
-                {
-                    Log.Information("Element Interaction on property class named -> " + ele.Properties.ClassName.ToString());
+                //var ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Warning")));
+                //if (ele is null)
+                //{
+                //    Log.Information($"[Step #1] failed, end of OpenDB automation function !!");
+                //    //return false;
+                //}
+                //else
+                //{
+                //    Log.Information("Element Interaction on property class named -> " + ele.Properties.ClassName.ToString());
 
-                    var eleOk = ele.FindFirstChild(cf => cf.ByName("OK"));
-                    ele.SetForeground();
-                    Mouse.MoveTo(eleOk.GetClickablePoint());
-                    Mouse.Click();
-                    Log.Information("Clicking 'OK' button...");
-                }
+                //    var eleOk = ele.FindFirstChild(cf => cf.ByName("OK"));
+                //    ele.SetForeground();
+                //    Mouse.MoveTo(eleOk.GetClickablePoint());
+                //    Mouse.Click();
+                //    Log.Information("Clicking 'OK' button...");
+                //}
                 // using main Accurate window
-                ele = null;
+
+                AutomationElement ele = null;
                 auEle = window.FindAllDescendants(cr => cr.ByClassName("TsuiSkinMenuBar"));
                 foreach (AutomationElement item in auEle)
                 {
@@ -527,8 +553,6 @@ namespace DSAccurateDesktopKPN
                     Log.Information("Clicking 'OK' button...");
                     ele.Click();
                 }
-
-
                 return true;
             }
             catch
@@ -617,7 +641,7 @@ namespace DSAccurateDesktopKPN
                 Thread.Sleep(1000);
 
                 /* The export button action resulting new window opened */
-                auEle = window.FindAllDescendants(cf => cf.ByName("Export to Excel"));
+                auEle = window.FindAllChildren(cf => cf.ByName("Export to Excel"));
                 foreach (AutomationElement item in auEle)
                 {
                     if (item.Properties.ProcessId == pid)
@@ -628,10 +652,12 @@ namespace DSAccurateDesktopKPN
                 }
                 if (ele1 is null)
                 {
-                    Log.Information($"[Step #3 Quitting, end of DownloadReport automation function !!");
+                    Log.Information($"Step #3 Quitting, end of DownloadReport automation function !!");
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + ele1.Properties.Name.ToString());
+                ele1.SetForeground();
+                //ele1.AsButton().Click();
 
                 /* Put here the code for iteration of report parameter check box */
                 /* End of codes */
@@ -650,11 +676,43 @@ namespace DSAccurateDesktopKPN
 
         private static bool SavingFileDialog(string reportName)
         {
-            //Edit
-            //System.Windows.Forms.SendKeys.SendWait("%n");
-            //Keyboard.Type("%n");
-            Log.Information("Saving file by sending keys 'ALT+n'...");
+            Thread.Sleep(2000);
+            AutomationElement mainEle = null;
+            AutomationElement[] auEle = window.FindAllChildren(cr => cr.ByName("Save As"));
+            foreach (AutomationElement item in auEle)
+            {
+                if (item.Properties.ProcessId == pid)
+                {
+                    mainEle = item;
+                    break;
+                }
+            }
+            if (mainEle is null)
+            {
+                Log.Information($"Step #1 Quitting, end of OpenReport\\SavingFileDialog automation function !!");
+                return false;
+            }
+            Log.Information("Element Interaction on property named -> " + mainEle.Properties.Name.ToString());
             Thread.Sleep(500);
+
+            AutomationElement ele1 = null;
+            AutomationElement[] auEle1 = mainEle.FindAllDescendants(cr => cr.ByName("File name:", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+            foreach (AutomationElement item in auEle1)
+            {
+                if (item.Properties.ControlType.ToString() == "Edit")
+                {
+                    ele1 = item;
+                    break;
+                }
+            }
+            if (ele1 is null)
+            {
+                Log.Information($"Step #2 Quitting, end of OpenReport\\SavingFileDialog automation function !!");
+                return false;
+            }
+            Log.Information("Element Interaction on property named -> " + ele1.Properties.Name.ToString());
+            Thread.Sleep(500);
+
             var excelname = "";
             switch (reportName)
             {
@@ -681,19 +739,22 @@ namespace DSAccurateDesktopKPN
                     break;
             }
             //System.Windows.Forms.SendKeys.SendWait($@"{appfolder}\{excelname}.");
-            Keyboard.Type($@"{appfolder}\{excelname}");
+            ele1.SetForeground();
+            ele1.Focus();
+            ele1.AsTextBox().Text = $@"{appfolder}\{excelname}";
             Thread.Sleep(500);
 
             //Save
-            var ele = window.FindFirstDescendant(cf => cf.ByName("Save"));
-            if (ele is null)
+            AutomationElement ele2 = null;
+            ele2 = mainEle.FindFirstChild(cf.ByName("Save"));
+            if (ele2 is null)
             {
-                Log.Information($"[Step #2] Quitting, end of OpenReport\\SavingFileDialog automation function !!");
+                Log.Information($"[Step #3 Quitting, end of DownloadReport automation function !!");
                 return false;
             }
-            Log.Information("Element Interaction on property named -> " + ele.Properties.Name.ToString());
-            ele.SetForeground();
-            ele.AsButton().Click();
+            Log.Information("Element Interaction on property named -> " + ele2.Properties.Name.ToString());
+            //ele2.SetForeground();
+            ele2.AsButton().Click();
 
             /* Pause the app to wait file saving is finnished */
             Thread.Sleep(10000);
