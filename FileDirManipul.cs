@@ -1,13 +1,10 @@
-﻿using System;
+﻿using Gma.System.MouseKeyHook;
+using System;
 using System.IO;
-using System.Security.Policy;
-using Windows.System.Profile;
+
 
 public abstract class DirectoryManipulator
 {
-
-
-
 
     public virtual string CreateDirectory(string path)
     {
@@ -119,6 +116,37 @@ public class  MyDirectoryManipulator : DirectoryManipulator
             File.Copy(newPath, newPath.Replace(sourcePath, destinationPath), true);
         }
         return ($"Copiying file(s) from {sourcePath} to {destinationPath}");
+    }
+
+
+    private IKeyboardMouseEvents? m_GlobalHook;
+
+    public void Subscribe()
+    {
+        Subscribe(m_GlobalHook);
+    }
+
+    public void Subscribe(IKeyboardMouseEvents m_GlobalHook)
+    {
+        // Note: for the application hook, use the Hook.AppEvents() instead
+        m_GlobalHook = Hook.GlobalEvents();
+
+        m_GlobalHook.MouseDownExt += GlobalHookMouseDownExt;
+        //m_GlobalHook.KeyPress += GlobalHookKeyPress;
+    }
+
+    //private void GlobalHookKeyPress(object sender, KeyPressEventArgs e)
+    //{
+    //    //Console.WriteLine("KeyPress: \t{0}", e.KeyChar);
+    //    e.Handled = true;
+    //}
+
+    private void GlobalHookMouseDownExt(object sender, MouseEventExtArgs e)
+    {
+        Console.WriteLine("MouseDown: \t{0}; \t System Timestamp: \t{1}", e.Button, e.Timestamp);
+
+        // uncommenting the following line will suppress the middle mouse button click
+        if (e.Button == System.Windows.Forms.MouseButtons.Left) { e.Handled = true; }
     }
 }
 

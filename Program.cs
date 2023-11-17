@@ -1,5 +1,4 @@
-﻿using System;
-using Serilog;
+﻿using Serilog;
 using FlaUI.UIA3;
 using FlaUI.Core;
 using FlaUI.Core.Input;
@@ -8,11 +7,6 @@ using FlaUI.Core.AutomationElements;
 using System.Configuration;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
-using FlaUI.Core.WindowsAPI;
-using static DirectoryManipulator;
-using FlaUI.Core.Tools;
-using System.Diagnostics;
-using System.Runtime.Versioning;
 
 namespace DSAccurateDesktopKPN
 {
@@ -54,6 +48,7 @@ namespace DSAccurateDesktopKPN
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern IntPtr SendMessage(IntPtr hWnd, UInt32 Msg, IntPtr wParam, IntPtr lParam);
 
+
         private static AutomationElement WaitForElement(Func<AutomationElement> findElementFunc)
         {
             AutomationElement element = null;
@@ -75,7 +70,7 @@ namespace DSAccurateDesktopKPN
             var hWnd = FindWindow(null, Title);
             if (hWnd != IntPtr.Zero )
             {
-                SendMessage(hWnd, WM_CLOSE, 0, 0);
+                SendMessage(hWnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
                 Log.Information("Closing dialog message box.");
             }
         }
@@ -85,6 +80,13 @@ namespace DSAccurateDesktopKPN
         {
             try
             {
+                int maxWidth = Console.LargestWindowWidth;
+                int maxHeight = Console.LargestWindowHeight;
+                Console.SetWindowPosition(0, 0);
+                Console.SetBufferSize(maxWidth, maxHeight);
+                Console.SetWindowSize(maxWidth, maxHeight);
+                Console.BackgroundColor = ConsoleColor.DarkGray;
+                Console.ForegroundColor = ConsoleColor.White;
                 BlockInput(true);
                 var supportFunc = new MyDirectoryManipulator();
                 supportFunc.DeleteFiles(appfolder, MyDirectoryManipulator.FileExtension.Zip);
@@ -111,7 +113,7 @@ namespace DSAccurateDesktopKPN
                 Console.WriteLine($"******************************************************************");
                 Console.WriteLine($"             Keyboard dan Mouse akan di matikan...                ");
                 Console.WriteLine($"     Komputer akan menjalankan oleh applikasi robot automasi...   ");
-                Console.WriteLine($" Aktifitas penggunakan komputer akan ter-BLOKIR selama 10 menit...");
+                Console.WriteLine($" Aktifitas penggunakan komputer akan ter-BLOKIR sekitar 10 menit...");
                 Console.WriteLine($"******************************************************************");
                 Console.WriteLine($"");
                 Thread.Sleep(10000);
