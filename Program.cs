@@ -46,13 +46,6 @@ namespace DSAccurateDesktopKPN
         [DllImport("user32.dll")]
         public static extern bool BlockInput(bool fBlockIt);
 
-        [DllImport("user32.dll", SetLastError = true)]
-        static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        static extern IntPtr SendMessage(IntPtr hWnd, UInt32 Msg, IntPtr wParam, IntPtr lParam);
-
-
         private static AutomationElement WaitForElement(Func<AutomationElement> findElementFunc)
         {
             AutomationElement element = null;
@@ -67,21 +60,6 @@ namespace DSAccurateDesktopKPN
                 Thread.Sleep(1);
             }
             return element;
-        }
-        
-        static void closeWarningDialogBox(string Title )
-        {
-            //string? lpclsname =null;
-            //var hWnd = FindWindow(lpclsname, Title);
-            //if (hWnd != IntPtr.Zero )
-            //{
-            //    SendMessage(hWnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
-            //    Log.Information("Closing dialog message box.");
-            //}
-            //else
-            //{
-            //    Log.Information($"Failed to close '{Title}' window.");
-            //}
         }
 
         static void Main(string[] args)
@@ -369,12 +347,12 @@ namespace DSAccurateDesktopKPN
                 }
                 if (mainElement is null)
                 {
-                    Log.Information($"[Step #1] Quitting, end of OpenReport automation function.");
+                    Log.Information($"[Step #1] Quitting, end of OpenApp automation function.");
                     return false;
                 }
                 Log.Information("Element Interaction on property named -> " + mainElement.Properties.Name.ToString());
                 AutomationElement selamatWindowEle = null;
-                var auEle1 = window.FindAllDescendants(cf.ByName("Selamat Datang", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                var auEle1 = window.FindAllChildren(cf.ByName("Selamat Datang", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
                 foreach (AutomationElement item in auEle1)
                 {
                     if (item.Properties.ProcessId == pid)
@@ -384,19 +362,20 @@ namespace DSAccurateDesktopKPN
                 }
                 if (selamatWindowEle == null)
                 {
-                    Log.Information($"[Step #1a] Quitting, end of OpenReport automation function.");
+                    Log.Information($"[Step #1a] Quitting, end of OpenApp automation function.");
                     return false;
                 }
                 var par = selamatWindowEle.BoundingRectangle;
-                var cordX = par.Right - 10;
-                var cordY = par.Top + 11;
-                Mouse.MoveTo(cordX, cordY);
+                Int16 cordX = Convert.ToInt16 (ConfigurationManager.AppSettings["xPosWelcome"]); 
+                Int16 cordY = Convert.ToInt16 (ConfigurationManager.AppSettings["yPosWelcome"]);
+                BlockInput(false);
                 Thread.Sleep(1000);
                 selamatWindowEle.SetForeground();
+                Mouse.MoveTo(cordX, cordY);
                 Mouse.Click();
-                Log.Information("Action -> Closing 'Welcome to Accurate' window.");
+                Log.Information($"Action -> Closing 'Welcome to Accurate' window at { (cordX)},{(cordY)}.");
                 Thread.Sleep(1500);
-
+                BlockInput(true);
                 /* Closing Warning diaLog box */
                 //var ele = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Warning")));
                 //if (ele is null)
@@ -741,7 +720,7 @@ namespace DSAccurateDesktopKPN
             }
             ele1.SetForeground();
             ele1.Focus();
-            ele1.AsTextBox().Text = $@"{appfolder}\{excelname}";
+            ele1.AsTextBox().Enter($"{appfolder}\\{excelname}");
             Thread.Sleep(500);
 
             //Save
@@ -757,7 +736,7 @@ namespace DSAccurateDesktopKPN
             ele2.AsButton().Click();
 
             /* Pause the app to wait file saving is finnished */
-            Thread.Sleep(10000);
+            Thread.Sleep(75000);
             return true;
         }
 
@@ -948,11 +927,11 @@ namespace DSAccurateDesktopKPN
                 reportElement2.SetForeground();
                 reportElement2.Focus();
                 reportElement2.DoubleClick();
-                Thread.Sleep(3000);
+                Thread.Sleep(10000);
 
                 // Opening Report Format Window
                 AutomationElement reportFormatElement = null;
-                auEle = window.FindAllDescendants(cr => cr.ByName("Report Format"));
+                auEle = window.FindAllChildren(cr => cr.ByName("Report Format"));
                 foreach (AutomationElement item in auEle)
                 {
                     if (item.Properties.ProcessId == pid)
@@ -1008,6 +987,21 @@ namespace DSAccurateDesktopKPN
                         Thread.Sleep(2000);
                     }
                 }
+                /* Sending combo box value '<Semua>' when wwhen opening Stock Valuation */
+                // "stock"
+                if (reportType == "stock")
+                {
+                    var filterBarang = filtersAndParametersElement.FindFirstDescendant(cf.ByName("<Nihil>", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                    if (filterBarang == null)
+                    {
+                        Log.Information($"[Step #11] Quitting, end of OpenReport automation function.");
+                        return false;
+                    }
+                    Log.Information("Element Interaction on property named -> " + filterBarang.Properties.Name.ToString());
+                    //filterBarang.Focus();
+                    filterBarang.AsTextBox().Text = "<Semua>\r";
+                    Thread.Sleep(2000);
+                }
 
                 // TabDateFromTo
                 var tabDateFromToElement = filtersAndParametersElement.FindFirstDescendant(cf.ByName("TabDate", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
@@ -1043,6 +1037,7 @@ namespace DSAccurateDesktopKPN
 
                     }
                 }
+
                 reportFormatElement.FindFirstDescendant(cf.ByName("OK")).AsButton().Click();
                 return DownloadReport(reportType);
             }
