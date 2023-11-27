@@ -1,7 +1,4 @@
 ﻿//using Gma.System.MouseKeyHook;
-using System;
-using System.IO;
-
 
 public abstract class DirectoryManipulator
 {
@@ -55,11 +52,11 @@ public abstract class DirectoryManipulator
         //process.Start();
         //process.WaitForExit();
         return "";
-        
+
     }
 
 }
-public class  MyDirectoryManipulator : DirectoryManipulator
+public class MyDirectoryManipulator : DirectoryManipulator
 {
 
     public enum FileExtension
@@ -70,7 +67,7 @@ public class  MyDirectoryManipulator : DirectoryManipulator
     }
     public override string CreateDirectory(string path)
     {
-        var value = base.CreateDirectory(path)  == "" ? "" : $"Creating directory at {path}";
+        var value = base.CreateDirectory(path) == "" ? "" : $"Creating directory at {path}";
         return value;
 
     }
@@ -108,7 +105,7 @@ public class  MyDirectoryManipulator : DirectoryManipulator
 
     }
 
-    public string CopyFolderFiles(string sourcePath, string destinationPath) 
+    public string CopyFolderFiles(string sourcePath, string destinationPath)
     {
         // Copy all the files & replace any files with the same name
         foreach (string newPath in Directory.GetFiles(sourcePath, "*.*"))
