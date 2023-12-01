@@ -254,6 +254,9 @@ namespace DSAccurateDesktopKPN
             catch (Exception ex)
             {
                 Log($"Error => {ex.ToString()}");
+                Console.Beep();
+                Thread.Sleep(1000);
+                Console.Beep();
             }
             finally
             {
@@ -293,7 +296,7 @@ namespace DSAccurateDesktopKPN
                 }
                 Log("Element Interaction on property named -> " + mainElement.Properties.Name.ToString());
                 mainElement.SetForeground();
-                Thread.Sleep(1000);
+                Thread.Sleep(2000);
 
                 var ele = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByClassName("TsuiSkinMenuBar")));
                 if (ele is null)
@@ -304,7 +307,7 @@ namespace DSAccurateDesktopKPN
                 Log("Element Interaction on property with class named -> " + ele.Properties.ClassName.ToString());
                 //ele.SetForeground();
                 ele.Focus();
-                Thread.Sleep(1000);
+                Thread.Sleep(2000);
 
                 //ele = WaitForElement(() => ele.FindFirstDescendant(cr => cr.ByName("Windows")));
                 ele = WaitForElement(() => ele.FindFirstDescendant(cr => cr.ByName("Jendela")));
@@ -317,7 +320,7 @@ namespace DSAccurateDesktopKPN
                 ele.Click();
                 //System.Windows.Forms.SendKeys.SendWait("%o");
                 //Log("Sending keys 'ALT+o'...");
-                Thread.Sleep(1000);
+                Thread.Sleep(2000);
 
                 // Context
                 ele = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByName("Context")));
@@ -359,6 +362,8 @@ namespace DSAccurateDesktopKPN
 
                 ProcessStartInfo psi = new ProcessStartInfo();
                 psi.FileName = Environment.GetEnvironmentVariable("WINDIR") + "\\explorer.exe";
+                psi.Verb = "runasuser";
+                psi.LoadUserProfile = true;
                 psi.Arguments = @$"{appExe}";
                 Process p = Process.Start(psi);
                 Thread.Sleep(25000);
@@ -413,9 +418,25 @@ namespace DSAccurateDesktopKPN
                 selamatWindowEle.SetForeground();
                 Mouse.MoveTo(cordX, cordY);
                 Mouse.Click();
+                selamatWindowEle = null;
                 Log($"Action -> Closing 'Welcome to Accurate' window at {(cordX)},{(cordY)}.");
                 Thread.Sleep(1500);
                 BlockInput(true);
+
+                //Logic to handle failed to close 'Selamat data window'
+                auEle1 = window.FindAllChildren(cf.ByName("Selamat Datang", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                foreach (AutomationElement item in auEle1)
+                {
+                    if (item.Properties.ProcessId == pid)
+                    {
+                        selamatWindowEle = item;
+                    }
+                }
+                if (selamatWindowEle != null)
+                {
+                    Log($"[Step #2] Quitting, end of OpenApp automation function. (failed to close 'Selamat Datang' window).");
+                    return false;
+                }
 
                 AutomationElement ele = null;
                 auEle = window.FindAllDescendants(cr => cr.ByClassName("TsuiSkinMenuBar"));
@@ -429,7 +450,7 @@ namespace DSAccurateDesktopKPN
                 }
                 if (ele is null)
                 {
-                    Log($"[Step #2] Quitting, end of OpenDB automation function !!");
+                    Log($"[Step #3] Quitting, end of OpenDB automation function !!");
                     return false;
                 }
                 Log("Element Interaction on property class named -> " + ele.Properties.ClassName.ToString());
@@ -439,7 +460,7 @@ namespace DSAccurateDesktopKPN
                 ele = WaitForElement(() => ele.FindFirstDescendant(cr => cr.ByName("Berkas")));
                 if (ele is null)
                 {
-                    Log($"[Step #3] Quitting, end of OpenDB automation function !!");
+                    Log($"[Step #4] Quitting, end of OpenDB automation function !!");
                     return false;
                 }
                 Log("Element Interaction on property named -> " + ele.Properties.Name.ToString());
@@ -451,7 +472,7 @@ namespace DSAccurateDesktopKPN
                 ele = WaitForElement(() => window.FindFirstDescendant(cr => cr.ByName("Context")));
                 if (ele is null)
                 {
-                    Log("[Step #4] Quitting, end of OpenDB automation function !!");
+                    Log("[Step #5] Quitting, end of OpenDB automation function !!");
                     return false;
                 }
                 Log("Element Interaction on property named -> " + ele.Properties.Name.ToString());
@@ -462,7 +483,7 @@ namespace DSAccurateDesktopKPN
                 ele = ele.FindAllDescendants((cr => cr.ByControlType(FlaUI.Core.Definitions.ControlType.MenuItem))).ElementAt(1);
                 if (ele is null)
                 {
-                    Log("[Step #5] Quitting, end of OpenDB automation function !!");
+                    Log("[Step #6] Quitting, end of OpenDB automation function !!");
                     return false;
                 }
                 Log("Element Interaction on property named 'Context' with Child id# -> " + ele.Properties.AutomationId.ToString());
@@ -483,7 +504,7 @@ namespace DSAccurateDesktopKPN
                 }
                 if (ele is null)
                 {
-                    Log($"[Step #6 Quitting, end of OpenDB automation function !!");
+                    Log($"[Step #7 Quitting, end of OpenDB automation function !!");
                     return false;
                 }
                 Log("Element Interaction on property named -> " + ele.Properties.Name.ToString());
@@ -496,7 +517,7 @@ namespace DSAccurateDesktopKPN
                     ele = WaitForElement(() => ele.FindFirstDescendant(cr => cr.ByName("Alias")));
                     if (ele is null)
                     {
-                        Log("[Step #7] Quitting, end of OpenDB automation function !!");
+                        Log("[Step #8] Quitting, end of OpenDB automation function !!");
                         return false;
                     }
                     Log("Element Interaction on property named -> " + ele.Properties.Name.ToString());
@@ -507,7 +528,7 @@ namespace DSAccurateDesktopKPN
                     var MainEle = WaitForElement(() => window.FindFirstChild(cr => cr.ByName("Alias")));
                     if (ele is null)
                     {
-                        Log("[Step #8] Quitting, end of OpenDB automation function !!");
+                        Log("[Step #9] Quitting, end of OpenDB automation function !!");
                         return false;
                     }
                     Log("Element Interaction on property named -> " + MainEle.Properties.Name.ToString());
@@ -517,7 +538,7 @@ namespace DSAccurateDesktopKPN
                     ele = WaitForElement(() => MainEle.FindFirstDescendant(cr => cr.ByName(DBaliasname)));
                     if (ele is null)
                     {
-                        Log("[Step #8] Quitting, end of OpenDB automation function !!");
+                        Log("[Step #10] Quitting, end of OpenDB automation function !!");
                         return false;
                     }
                     Log("Element Interaction on property named -> " + ele.Properties.Name.ToString());
@@ -527,7 +548,7 @@ namespace DSAccurateDesktopKPN
                     ele = WaitForElement(() => MainEle.FindFirstDescendant(cr => cr.ByName("Buka")));
                     if (ele is null)
                     {
-                        Log("[Step #8] Quitting, end of OpenDB automation function !!");
+                        Log("[Step #11] Quitting, end of OpenDB automation function !!");
                         return false;
                     }
                     Log("Element Interaction on property named -> " + ele.Properties.Name.ToString());
@@ -540,7 +561,7 @@ namespace DSAccurateDesktopKPN
                     var ele2 = WaitForElement(() => ele.FindFirstChild(cr => cr.ByClassName("TEdit")));
                     if (ele2 is null)
                     {
-                        Log($"[Step #7 Quitting, end of OpenDB automation function !!");
+                        Log($"[Step #8 Quitting, end of OpenDB automation function !!");
                         return false;
                     }
                     Log("Element Interaction on property class named -> " + ele2.Properties.ClassName.ToString());
@@ -619,7 +640,7 @@ namespace DSAccurateDesktopKPN
                 /** Start downloading report process **/
                 /* Travesing back to accurate desktop main windows */
                 AutomationElement ele1 = null;
-                AutomationElement[] auEle = window.FindAllDescendants(cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
+                AutomationElement[] auEle = window.FindAllChildren(cf.ByName("ACCURATE 4", FlaUI.Core.Definitions.PropertyConditionFlags.MatchSubstring));
                 foreach (AutomationElement item in auEle)
                 {
                     if (item.Properties.ProcessId == pid)
@@ -665,9 +686,31 @@ namespace DSAccurateDesktopKPN
                 }
                 Log("Element Interaction on property named -> " + ele1.Properties.Name.ToString());
                 ele1.SetForeground();
-                //ele1.AsButton().Click();
+                ele1.AsButton().Click();
+                Thread.Sleep(2000);
 
                 /* Put here the code for iteration of report parameter check box */
+                var exportToExcelElement = window.FindFirstChild(cf => cf.ByName("Export to Excel"));
+                if (exportToExcelElement is null)
+                {
+                    Log($"[Step #4 Quitting, end of DownloadReport automation function !!");
+                    return false;
+                }
+                AutomationElement[] checkboxes = exportToExcelElement.FindAllDescendants(cr => cr.ByClassName("TCheckBox"));
+                foreach (AutomationElement checkbox in checkboxes)
+                {
+                    switch (checkbox.Name)
+                    {
+                        case "Pictures":
+                            checkbox.AsCheckBox().IsChecked = false;
+                            Thread.Sleep(2000);
+                            break;
+                        case "Merge cells":
+                            checkbox.AsCheckBox().IsChecked = false;
+                            Thread.Sleep(2000);
+                            break;
+                    }
+                }
                 /* End of codes */
 
                 /* Clicking OK button  */
@@ -763,6 +806,7 @@ namespace DSAccurateDesktopKPN
             ele2.AsButton().Click();
             /* Pause the app to wait file saving is finnished */
             DateTime startTime = DateTime.Now;
+            Task.Delay(1000);
             while (DateTime.Now - startTime < TimeSpan.FromMinutes(2))
             {
                 if (IsFileExists(appfolder, excelname + ".xls"))
@@ -774,7 +818,8 @@ namespace DSAccurateDesktopKPN
             }
             if (!IsFileExists(appfolder, excelname + ".xls"))
             {
-                Console.WriteLine("'Time out' when saving file...");
+                Console.WriteLine("'Timeout' when saving file...");
+                return false;
             }
             return true;
         }
